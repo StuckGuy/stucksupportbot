@@ -129,8 +129,13 @@ async def welcome_new_member(update: ChatMemberUpdated, context: ContextTypes.DE
 
 # Main entry
 if __name__ == '__main__':
-    app = ApplicationBuilder().token(BOT_TOKEN).build()
-    app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_message))
-    app.add_handler(ChatMemberHandler(welcome_new_member, ChatMemberHandler.CHAT_MEMBER))
-    logger.info("🚀 StuckSupportBot (a.k.a. Chad) is live and vibin’...")
-    app.run_polling()
+    import asyncio
+
+    async def main():
+        app = ApplicationBuilder().token(BOT_TOKEN).build()
+        app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_message))
+        app.add_handler(ChatMemberHandler(welcome_new_member, ChatMemberHandler.CHAT_MEMBER))
+        logger.info("🚀 StuckSupportBot (a.k.a. Chad) is live and vibin’...")
+        await app.run_polling()
+
+    asyncio.run(main())
