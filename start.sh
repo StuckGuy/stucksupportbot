@@ -1,10 +1,7 @@
 #!/bin/bash
 
-# 🔁 Remove any wrong version first
-pip uninstall -y python-telegram-bot
+# Install dependencies
+pip install -r requirements.txt
 
-# ✅ Force the correct version
-pip install python-telegram-bot==20.7 openai==1.11.1
-
-# ▶️ Start your bot
+# Run the bot
 python main.py
