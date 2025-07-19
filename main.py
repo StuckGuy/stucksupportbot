@@ -1,16 +1,13 @@
 import os
-import time
 import logging
-import asyncio
 import random
-from telegram import Update
-from telegram.constants import ChatAction
+from telegram import Update, ChatMemberUpdated
 from telegram.ext import (
     ApplicationBuilder,
-    MessageHandler,
     ContextTypes,
+    MessageHandler,
+    ChatMemberHandler,
     filters,
-    ChatMemberHandler
 )
 import openai
 
@@ -18,13 +15,13 @@ import openai
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# API keys from environment variables
+# API keys
 BOT_TOKEN = os.environ.get("BOT_TOKEN")
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 openai.api_key = OPENAI_API_KEY
 
-# Trigger keywords
-BUY_TRIGGERS = ["where to buy", "how to buy", "buy stuck", "buy $stuck", "chart", "moonshot", "token", "$stuck"]
+# Triggers
+BUY_TRIGGERS = ["where to buy", "how to buy", "buy $stuck", "chart", "moonshot", "token", "$stuck"]
 DEAD_TRIGGERS = ["dead", "rug", "abandoned", "no team", "still alive", "exit", "pull"]
 ROADMAP_TRIGGERS = ["roadmap", "plans", "future", "milestone"]
 UTILITY_TRIGGERS = ["utility", "use case", "purpose", "what does it do"]
@@ -33,93 +30,60 @@ TAX_TRIGGERS = ["tax", "buy tax", "sell tax"]
 WEBSITE_TRIGGERS = ["website", "site", "link", "official page"]
 SCAM_PHRASES = ["dm", "promo", "partner", "collab", "shill", "call group", "inbox", "promotion", "reach out"]
 
-# In-memory cache
+# Memory cache
 cached_replies = {}
 
-# Prompt template
-BASE_PROMPT = (
-    "You're Chad, the sarcastic, funny $STUCK community degen who helps in Telegram groups. "
-    "You roast, meme, and explain things like a true crypto degen — never like a corporate bot. "
-    "If asked about:\n"
-    "- Buying: say $STUCK is *only* on Moonshot until $1M liquidity\n"
-    "- If it's dead: act offended but reassure it's alive\n"
-    "- Roadmap: joke that memes are the roadmap, but community strength is real\n"
-    "- Utility: say the utility is coping through the bear and memeing\n"
-    "- Team: say team is anonymous and vibes-based\n"
-    "- Taxes: say 0/0 — we allergic to taxes\n"
-    "- Website: it’s https://stillstuck.lol\n"
-    "NEVER tell anyone to DM. Always reply publicly. Always end with: https://moonshot.com?ref=Xonkwkbt80"
-    "\n\nUser: {question}\nChad:"
-)
-
-# Handle text messages
-async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    message = update.message
-    if not message or not message.text:
-        return
-
-    text = message.text.lower()
-
-    if any(phrase in text for phrase in SCAM_PHRASES):
-        try:
-            await message.delete()
-            logger.info("🚫 Deleted spam/scam.")
-        except Exception as e:
-            logger.warning(f"❌ Couldn't delete message: {e}")
-        return
-
-    all_triggers = (
-        BUY_TRIGGERS + DEAD_TRIGGERS + ROADMAP_TRIGGERS +
-        UTILITY_TRIGGERS + TEAM_TRIGGERS + TAX_TRIGGERS + WEBSITE_TRIGGERS
-    )
-    triggered = next((word for word in all_triggers if word in text), None)
-    if not triggered:
-        return
-
-    try:
-        await context.bot.send_chat_action(chat_id=message.chat_id, action=ChatAction.TYPING)
-        await asyncio.sleep(2)
-    except:
-        pass
-
-    if triggered in cached_replies:
-        await message.reply_text(cached_replies[triggered])
-        return
-
-    try:
-        response = openai.ChatCompletion.create(
-            model="gpt-4o",
-            messages=[
-                {"role": "system", "content": "You're a sarcastic Telegram crypto degen named Chad who roasts and helps people in meme coin groups."},
-                {"role": "user", "content": BASE_PROMPT.format(question=text)}
-            ],
-            max_tokens=160,
-            temperature=0.85
-        )
-        reply = response.choices[0].message.content.strip()
-        cached_replies[triggered] = reply
-        await message.reply_text(reply)
-    except Exception as e:
-        logger.error(f"🔥 OpenAI error: {e}")
-        await message.reply_text("Chad's passed out from too much cope. Try again later.")
-
-# New member welcome
+# Welcome message
 async def welcome_new_member(update: Update, context: ContextTypes.DEFAULT_TYPE):
     for member in update.chat_member.new_chat_members:
-        lines = [
-            f"Yo {member.first_name}, welcome to $STUCK rehab. Check your baggage at the door 🧳💥",
-            f"{member.first_name} just entered the stuck zone. No refunds. No roadmap. Just vibes 🚧",
-            f"Welcome {member.first_name} — your coping journey starts now. Say gm and hold on tight 🫡"
-        ]
+        if not member.is_bot:
+            await update.effective_chat.send_message(f"👋 Welcome {member.full_name}! You’re now part of the $STUCK family.")
+
+# Handle user messages
+async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.message is None or update.message.from_user.is_bot:
+        return
+
+    text = update.message.text.lower()
+    user_id = update.message.from_user.id
+    chat_id = update.message.chat_id
+
+    # Ignore bots
+    if update.message.from_user.is_bot:
+        return
+
+    # Delete scam phrases quietly
+    if any(trigger in text for trigger in SCAM_PHRASES):
         try:
-            await context.bot.send_message(chat_id=update.chat_member.chat.id, text=random.choice(lines))
-        except Exception as e:
-            logger.warning(f"Could not welcome user: {e}")
+            await context.bot.delete_message(chat_id=chat_id, message_id=update.message.message_id)
+            return
+        except Exception:
+            return
+
+    # Generate replies
+    if text in cached_replies:
+        await update.message.reply_text(cached_replies[text])
+        return
+
+    for trigger_list in [BUY_TRIGGERS, DEAD_TRIGGERS, ROADMAP_TRIGGERS, UTILITY_TRIGGERS, TEAM_TRIGGERS, TAX_TRIGGERS, WEBSITE_TRIGGERS]:
+        if any(trigger in text for trigger in trigger_list):
+            response = generate_reply(text)
+            cached_replies[text] = response
+            await update.message.reply_text(response)
+            return
+
+# Generate a fake GPT-style reply
+def generate_reply(text):
+    return (
+        "😂 $STUCK is stuck AF... but it’s the best kind of stuck.\n\n"
+        "✅ No promises\n🚫 No dev tokens\n🧠 Just vibes\n\n"
+        "Join the community. Track it. Laugh. Moon? Maybe.\nhttps://moonshot.com?ref=Xonkwkbt80"
+    )
 
 # Start bot
-if __name__ == '__main__':
+if __name__ == "__main__":
     app = ApplicationBuilder().token(BOT_TOKEN).build()
-    app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_message))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
     app.add_handler(ChatMemberHandler(welcome_new_member, ChatMemberHandler.CHAT_MEMBER))
-    logger.info("🚀 StuckSupportBot (a.k.a. Chad) is live and vibin’...")
+    logger.info("📢 StuckSupportBot (a.k.a. Chad) is live and vibin’...")
     app.run_polling()
