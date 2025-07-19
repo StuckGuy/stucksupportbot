@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: stucksupportbot
+    env: python
+    buildCommand: ""
+    startCommand: python main.py
+    plan: free
+    envVars:
+      - key: BOT_TOKEN
+        value: your_telegram_bot_token_here
+      - key: OPENAI_API_KEY
+        value: your_openai_key_here
