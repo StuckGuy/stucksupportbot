@@ -3,10 +3,10 @@ services:
     name: stucksupportbot
     env: python
     buildCommand: ""
-    startCommand: python main.py
+    startCommand: bash start.sh
     plan: free
     envVars:
       - key: BOT_TOKEN
-        value: your_telegram_bot_token_here
+        sync: false
       - key: OPENAI_API_KEY
-        value: your_openai_key_here
+        sync: false
