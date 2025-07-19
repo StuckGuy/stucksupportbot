@@ -3,8 +3,14 @@ import time
 import logging
 import asyncio
 import random
-from telegram import Update, ChatMemberUpdated
-from telegram.ext import ApplicationBuilder, MessageHandler, ContextTypes, filters, ChatMemberHandler
+from telegram import Update, ChatMemberUpdated, ChatAction
+from telegram.ext import (
+    ApplicationBuilder,
+    MessageHandler,
+    ContextTypes,
+    filters,
+    ChatMemberHandler,
+)
 import openai
 
 # Logging
@@ -63,18 +69,17 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     # Check if message matches any known triggers
-    TRIGGER_CATEGORIES = BUY_TRIGGERS + DEAD_TRIGGERS + ROADMAP_TRIGGERS + UTILITY_TRIGGERS + TEAM_TRIGGERS + TAX_TRIGGERS + WEBSITE_TRIGGERS
-    triggered = None
-    for word in TRIGGER_CATEGORIES:
-        if word in text:
-            triggered = word
-            break
+    TRIGGER_CATEGORIES = (
+        BUY_TRIGGERS + DEAD_TRIGGERS + ROADMAP_TRIGGERS +
+        UTILITY_TRIGGERS + TEAM_TRIGGERS + TAX_TRIGGERS + WEBSITE_TRIGGERS
+    )
+    triggered = next((word for word in TRIGGER_CATEGORIES if word in text), None)
 
     if not triggered:
         return  # Skip unrelated messages
 
     try:
-        await context.bot.send_chat_action(chat_id=message.chat_id, action="typing")
+        await context.bot.send_chat_action(chat_id=message.chat_id, action=ChatAction.TYPING)
         await asyncio.sleep(2)
     except:
         pass
@@ -103,8 +108,8 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await message.reply_text("Chad's passed out from too much cope. Try again later.")
 
 # Handle new members joining
-async def welcome_new_member(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    for member in update.chat_member.new_chat_members:
+async def welcome_new_member(update: ChatMemberUpdated, context: ContextTypes.DEFAULT_TYPE):
+    for member in update.new_chat_members:
         welcome_lines = [
             f"Yo {member.first_name}, welcome to $STUCK rehab. Check your baggage at the door 🧳💥",
             f"{member.first_name} just entered the stuck zone. No refunds. No roadmap. Just vibes 🚧",
@@ -112,13 +117,13 @@ async def welcome_new_member(update: Update, context: ContextTypes.DEFAULT_TYPE)
         ]
         try:
             await context.bot.send_message(
-                chat_id=update.chat_member.chat.id,
+                chat_id=update.chat.id,
                 text=random.choice(welcome_lines)
             )
         except Exception as e:
             logger.warning(f"Could not welcome user: {e}")
 
-# Run bot
+# Start the bot
 if __name__ == '__main__':
     app = ApplicationBuilder().token(BOT_TOKEN).build()
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
