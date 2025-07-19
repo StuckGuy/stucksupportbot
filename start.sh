@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# Install dependencies
+echo "📦 Installing packages..."
 pip install -r requirements.txt
 
-# Run the bot
+echo "🚀 Launching bot..."
 python main.py
