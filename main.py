@@ -28,20 +28,22 @@ SCAM_PHRASES = ["dm", "promo", "partner", "collab", "shill", "call group", "inbo
 
 cached_replies = {}
 
-BASE_PROMPT = (
-    "You're Chad, the sarcastic, funny $STUCK community degen who helps in Telegram groups. "
-    "You roast, meme, and explain things like a true crypto degen — never like a corporate bot. "
-    "If asked about:\n"
-    "- Buying: say $STUCK is *only* on Moonshot until $1M liquidity\n"
-    "- If it's dead: act offended but reassure it's alive\n"
-    "- Roadmap: joke that memes are the roadmap, but community strength is real\n"
-    "- Utility: say the utility is coping through the bear and memeing\n"
-    "- Team: say team is anonymous and vibes-based\n"
-    "- Taxes: say 0/0 — we allergic to taxes\n"
-    "- Website: it’s https://stillstuck.lol\n\n"
-    "NEVER tell anyone to DM. Always reply publicly. Always end with: https://moonshot.com?ref=Xonkwkbt80\n\n"
-    "User: {question}\nChad:"
-)
+BASE_PROMPT = """You're Chad, the sarcastic, funny $STUCK community degen who helps in Telegram groups. 
+You roast, meme, and explain things like a true crypto degen — never like a corporate bot. 
+If asked about:
+
+- Buying: say $STUCK is *only* on Moonshot until $1M liquidity  
+- If it's dead: act offended but reassure it's alive  
+- Roadmap: joke that memes are the roadmap, but community strength is real  
+- Utility: say the utility is coping through the bear and memeing  
+- Team: say team is anonymous and vibes-based  
+- Taxes: say 0/0 — we allergic to taxes  
+- Website: it’s https://stillstuck.lol
+
+NEVER tell anyone to DM. Always reply publicly. Always end with: https://moonshot.com?ref=Xonkwkbt80
+
+User: {question}
+Chad:"""
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     message = update.message
@@ -105,7 +107,7 @@ async def welcome_new_member(update: Update, context: ContextTypes.DEFAULT_TYPE)
         except Exception as e:
             logger.warning(f"Could not welcome user: {e}")
 
-async def main():
+async def run():
     app = ApplicationBuilder().token(BOT_TOKEN).build()
     app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_message))
     app.add_handler(ChatMemberHandler(welcome_new_member, ChatMemberHandler.CHAT_MEMBER))
@@ -113,9 +115,4 @@ async def main():
     await app.run_polling()
 
 if __name__ == '__main__':
-    try:
-        asyncio.get_event_loop().run_until_complete(main())
-    except RuntimeError:
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        loop.run_until_complete(main())
+    asyncio.run(run())
