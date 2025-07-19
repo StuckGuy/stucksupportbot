@@ -4,6 +4,7 @@ import logging
 import asyncio
 import random
 from telegram import Update
+from telegram.constants import ChatAction
 from telegram.ext import (
     ApplicationBuilder,
     MessageHandler,
@@ -67,7 +68,6 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             logger.warning(f"❌ Couldn't delete message: {e}")
         return
 
-    # Triggered?
     all_triggers = (
         BUY_TRIGGERS + DEAD_TRIGGERS + ROADMAP_TRIGGERS +
         UTILITY_TRIGGERS + TEAM_TRIGGERS + TAX_TRIGGERS + WEBSITE_TRIGGERS
@@ -77,12 +77,11 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     try:
-        await context.bot.send_chat_action(chat_id=message.chat_id, action="typing")
+        await context.bot.send_chat_action(chat_id=message.chat_id, action=ChatAction.TYPING)
         await asyncio.sleep(2)
     except:
         pass
 
-    # Cache hit
     if triggered in cached_replies:
         await message.reply_text(cached_replies[triggered])
         return
