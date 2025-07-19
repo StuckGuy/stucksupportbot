@@ -4,17 +4,22 @@ import logging
 import asyncio
 import random
 from telegram import Update, ChatMemberUpdated
-from telegram.constants import ChatAction  # ✅ FIXED
-from telegram.ext import ApplicationBuilder, MessageHandler, ContextTypes, filters, ChatMemberHandler
+from telegram.ext import (
+    ApplicationBuilder,
+    MessageHandler,
+    ContextTypes,
+    filters,
+    ChatMemberHandler
+)
 import openai
 
 # Logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# API keys
-BOT_TOKEN = os.getenv("BOT_TOKEN")
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+# API keys from environment variables
+BOT_TOKEN = os.environ.get("BOT_TOKEN")
+OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 openai.api_key = OPENAI_API_KEY
 
 # Trigger keywords
@@ -54,38 +59,34 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     text = message.text.lower()
 
-    # Delete scammy messages quietly
     if any(phrase in text for phrase in SCAM_PHRASES):
         try:
             await message.delete()
             logger.info("🚫 Deleted spam/scam.")
         except Exception as e:
-            logger.warning(f"❌ Couldn't delete: {e}")
+            logger.warning(f"❌ Couldn't delete message: {e}")
         return
 
-    # Check if message matches any known triggers
-    TRIGGER_CATEGORIES = BUY_TRIGGERS + DEAD_TRIGGERS + ROADMAP_TRIGGERS + UTILITY_TRIGGERS + TEAM_TRIGGERS + TAX_TRIGGERS + WEBSITE_TRIGGERS
-    triggered = None
-    for word in TRIGGER_CATEGORIES:
-        if word in text:
-            triggered = word
-            break
-
+    # Triggered?
+    all_triggers = (
+        BUY_TRIGGERS + DEAD_TRIGGERS + ROADMAP_TRIGGERS +
+        UTILITY_TRIGGERS + TEAM_TRIGGERS + TAX_TRIGGERS + WEBSITE_TRIGGERS
+    )
+    triggered = next((word for word in all_triggers if word in text), None)
     if not triggered:
-        return  # Skip unrelated messages
+        return
 
     try:
-        await context.bot.send_chat_action(chat_id=message.chat_id, action=ChatAction.TYPING)
+        await context.bot.send_chat_action(chat_id=message.chat_id, action="typing")
         await asyncio.sleep(2)
     except:
         pass
 
-    # Use cached response
+    # Cache hit
     if triggered in cached_replies:
         await message.reply_text(cached_replies[triggered])
         return
 
-    # Generate reply via OpenAI
     try:
         response = openai.ChatCompletion.create(
             model="gpt-4o",
@@ -103,26 +104,23 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         logger.error(f"🔥 OpenAI error: {e}")
         await message.reply_text("Chad's passed out from too much cope. Try again later.")
 
-# Handle new members joining
+# New member welcome
 async def welcome_new_member(update: Update, context: ContextTypes.DEFAULT_TYPE):
     for member in update.chat_member.new_chat_members:
-        welcome_lines = [
+        lines = [
             f"Yo {member.first_name}, welcome to $STUCK rehab. Check your baggage at the door 🧳💥",
             f"{member.first_name} just entered the stuck zone. No refunds. No roadmap. Just vibes 🚧",
             f"Welcome {member.first_name} — your coping journey starts now. Say gm and hold on tight 🫡"
         ]
         try:
-            await context.bot.send_message(
-                chat_id=update.chat_member.chat.id,
-                text=random.choice(welcome_lines)
-            )
+            await context.bot.send_message(chat_id=update.chat_member.chat.id, text=random.choice(lines))
         except Exception as e:
             logger.warning(f"Could not welcome user: {e}")
 
-# Run bot
+# Start bot
 if __name__ == '__main__':
     app = ApplicationBuilder().token(BOT_TOKEN).build()
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+    app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_message))
     app.add_handler(ChatMemberHandler(welcome_new_member, ChatMemberHandler.CHAT_MEMBER))
     logger.info("🚀 StuckSupportBot (a.k.a. Chad) is live and vibin’...")
     app.run_polling()
