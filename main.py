@@ -3,7 +3,8 @@ import time
 import logging
 import asyncio
 import random
-from telegram import Update, ChatMemberUpdated, ChatAction
+from telegram import Update, ChatMemberUpdated
+from telegram.constants import ChatAction
 from telegram.ext import (
     ApplicationBuilder,
     MessageHandler,
