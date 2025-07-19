@@ -73,7 +73,6 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not triggered:
         return  # Skip unrelated messages
 
-    # Simulate human typing
     try:
         await context.bot.send_chat_action(chat_id=message.chat_id, action="typing")
         await asyncio.sleep(2)
@@ -119,10 +118,10 @@ async def welcome_new_member(update: Update, context: ContextTypes.DEFAULT_TYPE)
         except Exception as e:
             logger.warning(f"Could not welcome user: {e}")
 
-# Start bot
+# Run bot
 if __name__ == '__main__':
     app = ApplicationBuilder().token(BOT_TOKEN).build()
-    app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_message))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
     app.add_handler(ChatMemberHandler(welcome_new_member, ChatMemberHandler.CHAT_MEMBER))
     logger.info("🚀 StuckSupportBot (a.k.a. Chad) is live and vibin’...")
     app.run_polling()
