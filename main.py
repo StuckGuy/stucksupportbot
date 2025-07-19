@@ -3,6 +3,8 @@ import time
 import logging
 import asyncio
 import random
+import sys
+print(f"Python version running: {sys.version}")
 from telegram import Update, ChatMemberUpdated
 from telegram.constants import ChatAction
 from telegram.ext import (
