@@ -121,13 +121,15 @@ async def welcome_new_member(update: Update, context: ContextTypes.DEFAULT_TYPE)
         ]
 
 try:
+    member = member_update.chat  # ✅ Required for .first_name to work
+
     # Welcome message
     await context.bot.send_message(
         chat_id=member_update.chat.id,
         text=random.choice([
-            f"🌀 *Yo {member.first_name}*, welcome to *$STUCK rehab*. Check your baggage at the door 📉✨",
+            f"📬 Yo *{member.first_name}*, welcome to *$STUCK rehab*. Check your baggage at the door 📉🛐",
             f"💀 *{member.first_name}* just entered the stuck zone. *No refunds. No roadmap. Just vibes* 🌀",
-            f"🙌 *Welcome {member.first_name}* — your coping journey starts now. *Say gm and hold on tight* 🐵"
+            f"🙌 *Welcome {member.first_name}* – your coping journey starts now. *Say gm and hold on tight* 🧠"
         ]),
         parse_mode="Markdown"
     )
