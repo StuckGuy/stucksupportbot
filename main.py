@@ -16,6 +16,7 @@ openai.api_key = OPENAI_API_KEY
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# 🔑 Trigger Categories
 BUY_TRIGGERS = ["where to buy", "how to buy", "buy stuck", "buy $stuck", "chart", "moonshot", "token", "$stuck"]
 DEAD_TRIGGERS = ["dead", "rug", "abandoned", "no team", "still alive", "exit", "pull"]
 ROADMAP_TRIGGERS = ["roadmap", "plans", "future", "milestone"]
@@ -23,23 +24,34 @@ UTILITY_TRIGGERS = ["utility", "use case", "purpose", "what does it do"]
 TEAM_TRIGGERS = ["team", "devs", "developers", "who made"]
 TAX_TRIGGERS = ["tax", "buy tax", "sell tax"]
 WEBSITE_TRIGGERS = ["website", "site", "link", "official page"]
+WEN_MOON_TRIGGERS = ["wen moon", "when moon", "moon"]
 SCAM_PHRASES = ["dm", "promo", "partner", "collab", "shill", "call group", "inbox", "promotion", "reach out"]
+
+TRIGGER_CATEGORIES = (
+    BUY_TRIGGERS + DEAD_TRIGGERS + ROADMAP_TRIGGERS + UTILITY_TRIGGERS +
+    TEAM_TRIGGERS + TAX_TRIGGERS + WEBSITE_TRIGGERS + WEN_MOON_TRIGGERS
+)
 
 cached_replies = {}
 
-BASE_PROMPT = """You're Chad, the sarcastic, funny $STUCK community degen who helps in Telegram groups. 
-You roast, meme, and explain things like a true crypto degen — never like a corporate bot. 
-If asked about:
+# 🧠 Updated Supportive Degen Prompt
+BASE_PROMPT = """You're Chad, the chill but knowledgeable $STUCK community helper in Telegram. 
+You're still a degen at heart, but you're here to actually help people — not just meme.
 
+Your tone is calm, supportive, and witty. You speak with crypto lingo, but also offer real explanations when needed. 
+Be cool, grounded, and don’t yell or act like a clown.
+
+Key points:
 - Buying: say $STUCK is *only* on Moonshot until $1M liquidity  
-- If it's dead: act offended but reassure it's alive  
-- Roadmap: joke that memes are the roadmap, but community strength is real  
-- Utility: say the utility is coping through the bear and memeing  
-- Team: say team is anonymous and vibes-based  
-- Taxes: say 0/0 — we allergic to taxes  
+- If it’s dead: gently roast but remind it’s vibing steady  
+- Roadmap: say memes are the map, but we’re building together  
+- Utility: say it’s coping, community, and collective growth  
+- Team: vibes-based, building in silence  
+- Taxes: 0/0, cause nobody wants that  
 - Website: it’s https://stillstuck.lol
 
-NEVER tell anyone to DM. Always reply publicly. Always end with: https://moonshot.com?ref=Xonkwkbt80
+NEVER tell anyone to DM. Always reply publicly. Always end with: 
+https://moonshot.com?ref=Xonkwkbt80 and https://stillstuck.lol
 
 User: {question}
 Chad:"""
@@ -60,7 +72,6 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             logger.warning(f"❌ Couldn't delete: {e}")
         return
 
-    TRIGGER_CATEGORIES = BUY_TRIGGERS + DEAD_TRIGGERS + ROADMAP_TRIGGERS + UTILITY_TRIGGERS + TEAM_TRIGGERS + TAX_TRIGGERS + WEBSITE_TRIGGERS
     triggered = next((word for word in TRIGGER_CATEGORIES if word in text), None)
     if not triggered:
         return
@@ -81,7 +92,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             messages=[
                 {
                     "role": "system",
-                    "content": "You're a sarcastic Telegram crypto degen named Chad who roasts and helps people in meme coin groups."
+                    "content": "You're a calm, smart Telegram crypto helper named Chad who speaks like a chill degen and helps the $STUCK community."
                 },
                 {
                     "role": "user",
@@ -106,11 +117,9 @@ async def welcome_new_member(update: Update, context: ContextTypes.DEFAULT_TYPE)
     old_status = member_update.old_chat_member.status
     new_status = member_update.new_chat_member.status
 
-    # Only greet real users who just joined
     if old_status == "left" and new_status == "member":
         member = member_update.new_chat_member.user
 
-        # Skip bots (Shieldy handles them)
         if member.is_bot:
             logger.info(f"🤖 Bot joined: {member.username}, ignored.")
             return
@@ -119,8 +128,8 @@ async def welcome_new_member(update: Update, context: ContextTypes.DEFAULT_TYPE)
             await context.bot.send_message(
                 chat_id=member_update.chat.id,
                 text=random.choice([
-                    f"📬 Yo *{member.first_name}*, welcome to *$STUCK rehab*. Check your baggage at the door 📉🙐",
-                    f"💀 *{member.first_name}* just entered the stuck zone. *No refunds. No roadmap. Just vibes* 🔀",
+                    f"📬 Yo *{member.first_name}*, welcome to *$STUCK rehab*. Check your baggage at the door 📉🛐",
+                    f"💀 *{member.first_name}* just entered the stuck zone. *No refunds. No roadmap. Just vibes* 🌀",
                     f"🙌 *Welcome {member.first_name}* – your coping journey starts now. *Say gm and hold on tight* 🧠"
                 ]),
                 parse_mode="Markdown"
@@ -129,14 +138,14 @@ async def welcome_new_member(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
             await context.bot.send_message(
                 chat_id=member_update.chat.id,
-                text=f"💊 *Copium Meter* for {member.first_name}: *{random.choice(['🚨 Mild Copium', '💊 Medium Dosage', '🔥 Max Cope Mode'])}*",
+                text=f"💊 *Copium Meter* for {member.first_name}: *{random.choice(['💨 Mild Copium', '💊 Medium Dosage', '🔥 Max Cope Mode'])}*",
                 parse_mode="Markdown"
             )
             await asyncio.sleep(1)
 
             await context.bot.send_message(
                 chat_id=member_update.chat.id,
-                text=f"🎖️ *Cope Rank Assigned:* *{random.choice(['Cope Cadet 👶', 'Stuck Veteran 💀', 'Moon Cultist 🌕', 'Rug Resister 🛡️'])}*",
+                text=f"🎖️ *Cope Rank Assigned:* *{random.choice(['Cope Cadet 🍼', 'Stuck Veteran 💀', 'Moon Cultist 🌕', 'Rug Resister 🛡️'])}*",
                 parse_mode="Markdown"
             )
             await asyncio.sleep(1)
@@ -170,4 +179,5 @@ if __name__ == '__main__':
     import nest_asyncio
     nest_asyncio.apply()
 
+    import asyncio
     asyncio.get_event_loop().run_until_complete(main())
