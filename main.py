@@ -120,13 +120,43 @@ async def welcome_new_member(update: Update, context: ContextTypes.DEFAULT_TYPE)
             f"Welcome {member.first_name} — your coping journey starts now. Say gm and hold on tight 🫡"
         ]
 
-        try:
-            await context.bot.send_message(
-                chat_id=member_update.chat.id,
-                text=random.choice(welcome_lines)
-            )
-        except Exception as e:
-            logger.warning(f"Could not welcome user: {e}")
+try:
+    # Welcome message
+    await context.bot.send_message(
+        chat_id=member_update.chat.id,
+        text=random.choice(welcome_lines)
+    )
+    await asyncio.sleep(1)
+
+    # Bonus: Drop Copium Meter
+    await context.bot.send_message(
+        chat_id=member_update.chat.id,
+        text=f"💊 Copium Meter for {member.first_name}: {random.choice(['💨 Mild Copium', '💊 Medium Dosage', '🔥 Max Cope Mode'])}"
+    )
+    await asyncio.sleep(1)
+
+    # Bonus: Assign Cope Rank
+    await context.bot.send_message(
+        chat_id=member_update.chat.id,
+        text=f"🎖️ Cope Rank Assigned: {random.choice(['Cope Cadet 🍼', 'Stuck Veteran 💀', 'Moon Cultist 🌕', 'Rug Resister 🛡️'])}"
+    )
+    await asyncio.sleep(1)
+
+    # Bonus: Tip of the Day
+    await context.bot.send_message(
+        chat_id=member_update.chat.id,
+        text=f"📘 Did You Know? {random.choice(['$STUCK only moons when you stop watching the chart 👀📉', 'Shieldy eats bots for breakfast 🍽️🤖', 'We have no utility — just memes and vibes 🧠🚀', 'Chad responds like he’s been rugged 5x this week 😬'])}"
+    )
+    await asyncio.sleep(1)
+
+    # Pinned message reminder
+    await context.bot.send_message(
+        chat_id=member_update.chat.id,
+        text="📌 P.S. Don’t forget to check the pinned message for Moonshot link + group rules!"
+    )
+
+except Exception as e:
+    logger.warning(f"Could not welcome user: {e}")
 
 async def main():
     app = ApplicationBuilder().token(BOT_TOKEN).build()
