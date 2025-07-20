@@ -124,40 +124,49 @@ try:
     # Welcome message
     await context.bot.send_message(
         chat_id=member_update.chat.id,
-        text=random.choice(welcome_lines)
+        text=random.choice([
+            f"🌀 *Yo {member.first_name}*, welcome to *$STUCK rehab*. Check your baggage at the door 📉✨",
+            f"💀 *{member.first_name}* just entered the stuck zone. *No refunds. No roadmap. Just vibes* 🌀",
+            f"🙌 *Welcome {member.first_name}* — your coping journey starts now. *Say gm and hold on tight* 🐵"
+        ]),
+        parse_mode="Markdown"
     )
     await asyncio.sleep(1)
 
-    # Bonus: Drop Copium Meter
+    # Copium Meter
     await context.bot.send_message(
         chat_id=member_update.chat.id,
-        text=f"💊 Copium Meter for {member.first_name}: {random.choice(['💨 Mild Copium', '💊 Medium Dosage', '🔥 Max Cope Mode'])}"
+        text=f"💊 *Copium Meter* for {member.first_name}: *{random.choice(['💨 Mild Copium', '💊 Medium Dosage', '🔥 Max Cope Mode'])}*",
+        parse_mode="Markdown"
     )
     await asyncio.sleep(1)
 
-    # Bonus: Assign Cope Rank
+    # Cope Rank
     await context.bot.send_message(
         chat_id=member_update.chat.id,
-        text=f"🎖️ Cope Rank Assigned: {random.choice(['Cope Cadet 🍼', 'Stuck Veteran 💀', 'Moon Cultist 🌕', 'Rug Resister 🛡️'])}"
+        text=f"🎖️ *Cope Rank Assigned:* *{random.choice(['Cope Cadet 🍼', 'Stuck Veteran 💀', 'Moon Cultist 🌕', 'Rug Resister 🛡️'])}*",
+        parse_mode="Markdown"
     )
     await asyncio.sleep(1)
 
-    # Bonus: Tip of the Day
+    # Tip of the Day
     await context.bot.send_message(
         chat_id=member_update.chat.id,
-        text=f"📘 Did You Know? {random.choice(['$STUCK only moons when you stop watching the chart 👀📉', 'Shieldy eats bots for breakfast 🍽️🤖', 'We have no utility — just memes and vibes 🧠🚀', 'Chad responds like he’s been rugged 5x this week 😬'])}"
+        text=f"📘 *Did You Know?* {random.choice(['$STUCK only moons when you stop watching the chart 👀📉', 'Shieldy eats bots for breakfast 🍽️🤖', 'We have no utility — just memes and vibes 🧠🚀', 'Chad responds like he’s been rugged 5x this week 😬'])}",
+        parse_mode="Markdown"
     )
     await asyncio.sleep(1)
 
     # Pinned message reminder
     await context.bot.send_message(
         chat_id=member_update.chat.id,
-        text="📌 P.S. Don’t forget to check the pinned message for Moonshot link + group rules!"
+        text="📌 *P.S.* Don’t forget to check the *pinned message* for Moonshot link + group rules!",
+        parse_mode="Markdown"
     )
 
 except Exception as e:
     logger.warning(f"Could not welcome user: {e}")
-
+    
 async def main():
     app = ApplicationBuilder().token(BOT_TOKEN).build()
     app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_message))
