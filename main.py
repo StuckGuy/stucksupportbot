@@ -179,5 +179,11 @@ if __name__ == '__main__':
     import nest_asyncio
     nest_asyncio.apply()
 
-    import asyncio
-    asyncio.get_event_loop().run_until_complete(main())
+    try:
+        asyncio.run(main())
+    except RuntimeError as e:
+        if "cannot be closed" in str(e).lower() or "running event loop" in str(e).lower():
+            logger.warning("🔁 Loop already running. Switching to fallback...")
+            loop = asyncio.get_event_loop()
+            loop.create_task(main())
+            loop.run_forever()
