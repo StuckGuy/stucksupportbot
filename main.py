@@ -6,10 +6,10 @@ import random
 from dotenv import load_dotenv
 from telegram import Update
 from telegram.ext import ApplicationBuilder, MessageHandler, ContextTypes, filters, ChatMemberHandler
-import openai
 
-# Load environment variables
-load_dotenv()
+from openai import OpenAI  # ✅ use this instead of just `import openai`
+
+load_dotenv()  # ✅ Make sure this runs early
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 openai.api_key = OPENAI_API_KEY
