@@ -97,7 +97,7 @@ async def handle_message(message, text):
 
         reply = response.choices[0].message.content.strip()
         cached_replies[triggered] = reply
-        await message.message.reply_text(...)
+        await message.effective_message.reply_text(...)
 
     except Exception as e:
         logger.error(f"🔥 OpenAI error: {e}")
