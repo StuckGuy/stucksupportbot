@@ -76,21 +76,25 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     try:
-        response = openai.ChatCompletion.create(
-            model="gpt-4o",
-            messages=[
-                {"role": "system", "content": "You're a sarcastic Telegram crypto degen named Chad who roasts and helps people in meme coin groups."},
-                {"role": "user", "content": BASE_PROMPT.format(question=text)}
-            ],
-            max_tokens=160,
-            temperature=0.85
-        )
-        reply = response.choices[0].message.content.strip()
-        cached_replies[triggered] = reply
-        await message.reply_text(reply)
-    except Exception as e:
-        logger.error(f"🔥 OpenAI error: {e}")
-        await message.reply_text("Chad's passed out from too much cope. Try again later.")
+    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+    response = client.chat.completions.create(
+        model="gpt-4o",
+        messages=[
+            {"role": "system", "content": "You're a sarcastic Telegram crypto degen named Chad who roasts and helps people in meme coin groups."},
+            {"role": "user", "content": BASE_PROMPT.format(question=text)}
+        ],
+        max_tokens=160,
+        temperature=0.85
+    )
+
+    reply = response.choices[0].message.content.strip()
+    cached_replies[triggered] = reply
+    await message.reply_text(reply)
+
+except Exception as e:
+    logger.error(f"🔥 OpenAI error: {e}")
+    await message.reply_text("Chad's passed out from too much cope. Try again later.")
 
 async def welcome_new_member(update: Update, context: ContextTypes.DEFAULT_TYPE):
     for member in update.chat_member.new_chat_members:
