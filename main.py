@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 from telegram import Update
 from telegram.ext import ApplicationBuilder, MessageHandler, ContextTypes, filters, ChatMemberHandler
 
-from openai import OpenAI  # ✅ use this instead of just `import openai`
+import openai  # ✅ use this instead of just `import openai`
 
 load_dotenv()  # ✅ Make sure this runs early
 BOT_TOKEN = os.getenv("BOT_TOKEN")
