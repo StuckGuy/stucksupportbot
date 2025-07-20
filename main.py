@@ -6,10 +6,9 @@ import random
 from dotenv import load_dotenv
 from telegram import Update
 from telegram.ext import ApplicationBuilder, MessageHandler, ContextTypes, filters, ChatMemberHandler
+import openai
 
-import openai  # ✅ use this instead of just `import openai`
-
-load_dotenv()  # ✅ Make sure this runs early
+load_dotenv()
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 openai.api_key = OPENAI_API_KEY
@@ -45,6 +44,7 @@ NEVER tell anyone to DM. Always reply publicly. Always end with: https://moonsho
 User: {question}
 Chad:"""
 
+
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     message = update.message
     if not message or not message.text:
@@ -75,10 +75,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await message.reply_text(cached_replies[triggered])
         return
 
-async def handle_message(message, text):
     try:
-        openai.api_key = os.getenv("OPENAI_API_KEY")
-
         response = openai.ChatCompletion.create(
             model="gpt-4o",
             messages=[
@@ -88,7 +85,7 @@ async def handle_message(message, text):
                 },
                 {
                     "role": "user",
-                    "content": BASE_PROMPT.format(question=text)
+                    "content": BASE_PROMPT.format(question=message.text)
                 }
             ],
             max_tokens=160,
@@ -97,11 +94,12 @@ async def handle_message(message, text):
 
         reply = response.choices[0].message.content.strip()
         cached_replies[triggered] = reply
-        await message.effective_message.reply_text(...)
+        await message.reply_text(reply)
 
     except Exception as e:
         logger.error(f"🔥 OpenAI error: {e}")
         await message.reply_text("Chad's passed out from too much cope. Try again later.")
+
 
 async def welcome_new_member(update: Update, context: ContextTypes.DEFAULT_TYPE):
     for member in update.chat_member.new_chat_members:
@@ -118,6 +116,7 @@ async def welcome_new_member(update: Update, context: ContextTypes.DEFAULT_TYPE)
         except Exception as e:
             logger.warning(f"Could not welcome user: {e}")
 
+
 async def main():
     app = ApplicationBuilder().token(BOT_TOKEN).build()
     app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_message))
@@ -125,10 +124,10 @@ async def main():
     logger.info("🚀 StuckSupportBot (a.k.a. Chad) is live and vibin’...")
     await app.run_polling()
 
+
 if __name__ == '__main__':
     import nest_asyncio
     nest_asyncio.apply()
 
     import asyncio
     asyncio.get_event_loop().run_until_complete(main())
-
