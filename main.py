@@ -100,22 +100,33 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         logger.error(f"🔥 OpenAI error: {e}")
         await message.reply_text("Chad's passed out from too much cope. Try again later.")
 
-
 async def welcome_new_member(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    for member in update.chat_member.new_chat_members:
+    member_update = update.chat_member
+    old_status = member_update.old_chat_member.status
+    new_status = member_update.new_chat_member.status
+
+    # Only greet real users who just joined
+    if old_status == "left" and new_status == "member":
+        member = member_update.new_chat_member.user
+
+        # Skip bots (Shieldy handles them)
+        if member.is_bot:
+            logger.info(f"🤖 Bot joined: {member.username}, ignored.")
+            return
+
         welcome_lines = [
             f"Yo {member.first_name}, welcome to $STUCK rehab. Check your baggage at the door 🧳💥",
             f"{member.first_name} just entered the stuck zone. No refunds. No roadmap. Just vibes 🚧",
             f"Welcome {member.first_name} — your coping journey starts now. Say gm and hold on tight 🫡"
         ]
+
         try:
             await context.bot.send_message(
-                chat_id=update.chat_member.chat.id,
+                chat_id=member_update.chat.id,
                 text=random.choice(welcome_lines)
             )
         except Exception as e:
             logger.warning(f"Could not welcome user: {e}")
-
 
 async def main():
     app = ApplicationBuilder().token(BOT_TOKEN).build()
