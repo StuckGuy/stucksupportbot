@@ -89,7 +89,6 @@ try:
     )
 
     reply = response.choices[0].message.content.strip()
-    cached_replies[triggered] = reply
     await message.reply_text(reply)
 
 except Exception as e:
