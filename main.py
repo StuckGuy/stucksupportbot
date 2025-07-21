@@ -5,14 +5,23 @@ import asyncio
 import random
 from dotenv import load_dotenv
 from telegram import Update
-from telegram.ext import ApplicationBuilder, MessageHandler, ContextTypes, filters, ChatMemberHandler
+from telegram.ext import (
+    ApplicationBuilder, MessageHandler, ContextTypes,
+    filters, ChatMemberHandler
+)
 import openai
+import nest_asyncio
 
+# 🧠 Prevent asyncio loop issues in Replit/local
+nest_asyncio.apply()
+
+# 🔐 Load environment variables
 load_dotenv()
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 openai.api_key = OPENAI_API_KEY
 
+# 📋 Logging setup
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -175,15 +184,13 @@ async def main():
     await app.run_polling()
 
 
+# ✅ Launch safely with fallback for Replit/asyncio
 if __name__ == '__main__':
-    import nest_asyncio
-    nest_asyncio.apply()
-
     try:
-        asyncio.run(main())
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(main())
     except RuntimeError as e:
-        if "cannot be closed" in str(e).lower() or "running event loop" in str(e).lower():
-            logger.warning("🔁 Loop already running. Switching to fallback...")
-            loop = asyncio.get_event_loop()
-            loop.create_task(main())
-            loop.run_forever()
+        logger.warning(f"🔁 Loop issue fallback: {e}")
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        loop.run_until_complete(main())
