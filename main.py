@@ -84,11 +84,12 @@ https://moonshot.com?ref=Xonkwkbt80 and https://stillstuck.lol
 User: {question}
 Chad:"""
 
-
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     message = update.message
     if not message or not message.text:
         return
+
+    logger.info(f"💬 Received message: {message.text} from {message.from_user.username or message.from_user.id}")
 
     user_id = message.from_user.id
     now = datetime.now()
@@ -109,7 +110,9 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     triggered = next((word for word in TRIGGER_CATEGORIES if word in text), None)
+
     if not triggered:
+        logger.info("🛑 No trigger matched for message.")
         return
 
     try:
@@ -150,9 +153,11 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         logger.warning("🕒 OpenAI timeout.")
         await message.reply_text("Chad’s stuck thinking too hard. Try again in a sec.")
     except Exception as e:
-        logger.error(f"🔥 OpenAI error: {e}")
-        await message.reply_text("Chad's passed out from too much cope. Try again later.")
-
+        logger.exception(f"🔥 Full error during OpenAI call or reply: {e}")
+        try:
+            await message.reply_text("Chad's passed out from too much cope. Try again later.")
+        except Exception as reply_fail:
+            logger.warning(f"⚠️ Failed to send fallback message: {reply_fail}")
 
 async def welcome_new_member(update: Update, context: ContextTypes.DEFAULT_TYPE):
     member_update = update.chat_member
@@ -208,14 +213,12 @@ async def welcome_new_member(update: Update, context: ContextTypes.DEFAULT_TYPE)
         except Exception as e:
             logger.warning(f"Could not welcome user: {e}")
 
-
 async def main():
     app = ApplicationBuilder().token(BOT_TOKEN).drop_pending_updates(True).defaults(Defaults(parse_mode="Markdown")).build()
     app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_message))
     app.add_handler(ChatMemberHandler(welcome_new_member, ChatMemberHandler.CHAT_MEMBER))
     logger.info("🚀 StuckSupportBot (a.k.a. Chad) is live and vibin’...")
     await app.run_polling()
-
 
 if __name__ == '__main__':
     import nest_asyncio
