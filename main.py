@@ -25,15 +25,12 @@ openai.api_key = OPENAI_API_KEY
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# ⏳ Rate limiting: max 1 message per user per 10 seconds
 user_last_message_time = defaultdict(lambda: datetime.min)
 RATE_LIMIT_SECONDS = 10
 
-# 🧠 Cached reply memory (limit to 50 entries)
 cached_replies = OrderedDict()
 MAX_CACHE_SIZE = 50
 
-# 🔑 Trigger Categories (Expanded)
 BUY_TRIGGERS = [
     "where to buy", "how to buy", "buy stuck", "buy $stuck", "chart", "moonshot", "token", "$stuck",
     "how do i get", "where can i get", "can i buy", "is it on moonshot"
@@ -96,7 +93,6 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = message.from_user.id
     now = datetime.now()
 
-    # 🧱 Rate limit
     if (now - user_last_message_time[user_id]).total_seconds() < RATE_LIMIT_SECONDS:
         logger.info("⏱️ Rate limit triggered.")
         return
@@ -104,7 +100,6 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     text = message.text.lower()
 
-    # 🚫 Delete spam
     if any(phrase in text for phrase in SCAM_PHRASES):
         try:
             await message.delete()
@@ -140,13 +135,12 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     temperature=0.85
                 )
             ),
-            timeout=10  # 🔥 Timeout after 10 seconds
+            timeout=10
         )
 
         reply = response.choices[0].message.content.strip()
         cached_replies[triggered] = reply
 
-        # ⛔ Limit reply cache size
         if len(cached_replies) > MAX_CACHE_SIZE:
             cached_replies.popitem(last=False)
 
@@ -193,14 +187,14 @@ async def welcome_new_member(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
             await context.bot.send_message(
                 chat_id=member_update.chat.id,
-                text=f"🎖️ *Cope Rank Assigned:* *{random.choice(['Cope Cadet 🍼', 'Stuck Veteran 💀', 'Moon Cultist 🌕', 'Rug Resister 🛡️'])}*",
+                text=f"🎖️ *Cope Rank Assigned:* *{random.choice(['Cope Cadet 👿', 'Stuck Veteran 💀', 'Moon Cultist 🌕', 'Rug Resister 🛡️'])}*",
                 parse_mode="Markdown"
             )
             await asyncio.sleep(1)
 
             await context.bot.send_message(
                 chat_id=member_update.chat.id,
-                text=f"📘 *Did You Know?* {random.choice(['$STUCK only moons when you stop watching the chart 👀📉', 'Shieldy eats bots for breakfast 🍽️🤖', 'We have no utility — just memes and vibes 🧠🚀', 'Chad responds like he’s been rugged 5x this week 😬'])}",
+                text=f"📘 *Did You Know?* {random.choice(['$STUCK only moons when you stop watching the chart 👀📉', 'Shieldy eats bots for breakfast 🍽️🤖', 'We have no utility — just memes and vibes 🧐🚀', 'Chad responds like he’s been rugged 5x this week 😬'])}",
                 parse_mode="Markdown"
             )
             await asyncio.sleep(1)
@@ -216,7 +210,7 @@ async def welcome_new_member(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
 
 async def main():
-    app = ApplicationBuilder().token(BOT_TOKEN).defaults(Defaults(parse_mode="Markdown")).build()
+    app = ApplicationBuilder().token(BOT_TOKEN).drop_pending_updates(True).defaults(Defaults(parse_mode="Markdown")).build()
     app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_message))
     app.add_handler(ChatMemberHandler(welcome_new_member, ChatMemberHandler.CHAT_MEMBER))
     logger.info("🚀 StuckSupportBot (a.k.a. Chad) is live and vibin’...")
