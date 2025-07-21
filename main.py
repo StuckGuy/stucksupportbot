@@ -33,20 +33,37 @@ RATE_LIMIT_SECONDS = 10
 cached_replies = OrderedDict()
 MAX_CACHE_SIZE = 50
 
-# 🔑 Trigger Categories
-BUY_TRIGGERS = ["where to buy", "how to buy", "buy stuck", "buy $stuck", "chart", "moonshot", "token", "$stuck"]
+# 🔑 Trigger Categories (Expanded)
+BUY_TRIGGERS = [
+    "where to buy", "how to buy", "buy stuck", "buy $stuck", "chart", "moonshot", "token", "$stuck",
+    "how do i get", "where can i get", "can i buy", "is it on moonshot"
+]
+
 DEAD_TRIGGERS = ["dead", "rug", "abandoned", "no team", "still alive", "exit", "pull"]
-ROADMAP_TRIGGERS = ["roadmap", "plans", "future", "milestone"]
-UTILITY_TRIGGERS = ["utility", "use case", "purpose", "what does it do"]
-TEAM_TRIGGERS = ["team", "devs", "developers", "who made"]
-TAX_TRIGGERS = ["tax", "buy tax", "sell tax"]
-WEBSITE_TRIGGERS = ["website", "site", "link", "official page"]
-WEN_MOON_TRIGGERS = ["wen moon", "when moon", "moon"]
+
+ROADMAP_TRIGGERS = ["roadmap", "plans", "future", "milestone", "what’s next", "what's next", "what are you building"]
+
+UTILITY_TRIGGERS = ["utility", "use case", "purpose", "what does it do", "what’s the point", "what is stuck for"]
+
+TEAM_TRIGGERS = ["team", "devs", "developers", "who made", "who runs", "who's behind"]
+
+TAX_TRIGGERS = ["tax", "buy tax", "sell tax", "is there a tax"]
+
+WEBSITE_TRIGGERS = ["website", "site", "link", "official page", "where’s the site", "whats the site"]
+
+WEN_MOON_TRIGGERS = ["wen moon", "when moon", "moon", "when lambo", "will it pump"]
+
+GROWTH_TRIGGERS = [
+    "investors", "visibility", "marketing", "reach", "exposure", "community growth",
+    "how to grow", "how can we grow", "get more holders", "get more people"
+]
+
 SCAM_PHRASES = ["dm", "promo", "partner", "collab", "shill", "call group", "inbox", "promotion", "reach out"]
 
 TRIGGER_CATEGORIES = (
     BUY_TRIGGERS + DEAD_TRIGGERS + ROADMAP_TRIGGERS + UTILITY_TRIGGERS +
-    TEAM_TRIGGERS + TAX_TRIGGERS + WEBSITE_TRIGGERS + WEN_MOON_TRIGGERS
+    TEAM_TRIGGERS + TAX_TRIGGERS + WEBSITE_TRIGGERS + WEN_MOON_TRIGGERS +
+    GROWTH_TRIGGERS
 )
 
 BASE_PROMPT = """You're Chad, the chill but knowledgeable $STUCK community helper in Telegram. 
