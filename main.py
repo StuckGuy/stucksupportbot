@@ -6,24 +6,32 @@ import random
 from dotenv import load_dotenv
 from telegram import Update
 from telegram.ext import (
-    ApplicationBuilder, MessageHandler, ContextTypes,
-    filters, ChatMemberHandler
+    ApplicationBuilder,
+    MessageHandler,
+    ContextTypes,
+    filters,
+    ChatMemberHandler,
+    Defaults,
 )
 import openai
-import nest_asyncio
+from collections import defaultdict, OrderedDict
+from datetime import datetime, timedelta
 
-# 🧠 Prevent asyncio loop issues in Replit/local
-nest_asyncio.apply()
-
-# 🔐 Load environment variables
 load_dotenv()
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 openai.api_key = OPENAI_API_KEY
 
-# 📋 Logging setup
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# ⏳ Rate limiting: max 1 message per user per 10 seconds
+user_last_message_time = defaultdict(lambda: datetime.min)
+RATE_LIMIT_SECONDS = 10
+
+# 🧠 Cached reply memory (limit to 50 entries)
+cached_replies = OrderedDict()
+MAX_CACHE_SIZE = 50
 
 # 🔑 Trigger Categories
 BUY_TRIGGERS = ["where to buy", "how to buy", "buy stuck", "buy $stuck", "chart", "moonshot", "token", "$stuck"]
@@ -41,9 +49,6 @@ TRIGGER_CATEGORIES = (
     TEAM_TRIGGERS + TAX_TRIGGERS + WEBSITE_TRIGGERS + WEN_MOON_TRIGGERS
 )
 
-cached_replies = {}
-
-# 🧠 Updated Supportive Degen Prompt
 BASE_PROMPT = """You're Chad, the chill but knowledgeable $STUCK community helper in Telegram. 
 You're still a degen at heart, but you're here to actually help people — not just meme.
 
@@ -71,8 +76,18 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not message or not message.text:
         return
 
+    user_id = message.from_user.id
+    now = datetime.now()
+
+    # 🧱 Rate limit
+    if (now - user_last_message_time[user_id]).total_seconds() < RATE_LIMIT_SECONDS:
+        logger.info("⏱️ Rate limit triggered.")
+        return
+    user_last_message_time[user_id] = now
+
     text = message.text.lower()
 
+    # 🚫 Delete spam
     if any(phrase in text for phrase in SCAM_PHRASES):
         try:
             await message.delete()
@@ -96,26 +111,33 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     try:
-        response = openai.ChatCompletion.create(
-            model="gpt-4o",
-            messages=[
-                {
-                    "role": "system",
-                    "content": "You're a calm, smart Telegram crypto helper named Chad who speaks like a chill degen and helps the $STUCK community."
-                },
-                {
-                    "role": "user",
-                    "content": BASE_PROMPT.format(question=message.text)
-                }
-            ],
-            max_tokens=160,
-            temperature=0.85
+        response = await asyncio.wait_for(
+            asyncio.to_thread(
+                lambda: openai.ChatCompletion.create(
+                    model="gpt-4o",
+                    messages=[
+                        {"role": "system", "content": "You're a calm, smart Telegram crypto helper named Chad who speaks like a chill degen and helps the $STUCK community."},
+                        {"role": "user", "content": BASE_PROMPT.format(question=message.text)}
+                    ],
+                    max_tokens=160,
+                    temperature=0.85
+                )
+            ),
+            timeout=10  # 🔥 Timeout after 10 seconds
         )
 
         reply = response.choices[0].message.content.strip()
         cached_replies[triggered] = reply
+
+        # ⛔ Limit reply cache size
+        if len(cached_replies) > MAX_CACHE_SIZE:
+            cached_replies.popitem(last=False)
+
         await message.reply_text(reply)
 
+    except asyncio.TimeoutError:
+        logger.warning("🕒 OpenAI timeout.")
+        await message.reply_text("Chad’s stuck thinking too hard. Try again in a sec.")
     except Exception as e:
         logger.error(f"🔥 OpenAI error: {e}")
         await message.reply_text("Chad's passed out from too much cope. Try again later.")
@@ -177,20 +199,22 @@ async def welcome_new_member(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
 
 async def main():
-    app = ApplicationBuilder().token(BOT_TOKEN).build()
+    app = ApplicationBuilder().token(BOT_TOKEN).defaults(Defaults(parse_mode="Markdown")).build()
     app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_message))
     app.add_handler(ChatMemberHandler(welcome_new_member, ChatMemberHandler.CHAT_MEMBER))
     logger.info("🚀 StuckSupportBot (a.k.a. Chad) is live and vibin’...")
     await app.run_polling()
 
 
-# ✅ Launch safely with fallback for Replit/asyncio
 if __name__ == '__main__':
+    import nest_asyncio
+    nest_asyncio.apply()
+
     try:
-        loop = asyncio.get_event_loop()
-        loop.run_until_complete(main())
+        asyncio.run(main())
     except RuntimeError as e:
-        logger.warning(f"🔁 Loop issue fallback: {e}")
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        loop.run_until_complete(main())
+        if "cannot be closed" in str(e).lower() or "running event loop" in str(e).lower():
+            logger.warning("🔁 Loop already running. Switching to fallback...")
+            loop = asyncio.get_event_loop()
+            loop.create_task(main())
+            loop.run_forever()
