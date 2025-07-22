@@ -31,30 +31,15 @@ RATE_LIMIT_SECONDS = 10
 cached_replies = OrderedDict()
 MAX_CACHE_SIZE = 50
 
-BUY_TRIGGERS = [
-    "where to buy", "how to buy", "buy stuck", "buy $stuck", "chart", "moonshot", "token", "$stuck",
-    "how do i get", "where can i get", "can i buy", "is it on moonshot"
-]
-
+BUY_TRIGGERS = ["where to buy", "how to buy", "buy stuck", "buy $stuck", "chart", "moonshot", "token", "$stuck", "how do i get", "where can i get", "can i buy", "is it on moonshot"]
 DEAD_TRIGGERS = ["dead", "rug", "abandoned", "no team", "still alive", "exit", "pull"]
-
 ROADMAP_TRIGGERS = ["roadmap", "plans", "future", "milestone", "what’s next", "what's next", "what are you building"]
-
 UTILITY_TRIGGERS = ["utility", "use case", "purpose", "what does it do", "what’s the point", "what is stuck for"]
-
 TEAM_TRIGGERS = ["team", "devs", "developers", "who made", "who runs", "who's behind"]
-
 TAX_TRIGGERS = ["tax", "buy tax", "sell tax", "is there a tax"]
-
 WEBSITE_TRIGGERS = ["website", "site", "link", "official page", "where’s the site", "whats the site"]
-
 WEN_MOON_TRIGGERS = ["wen moon", "when moon", "moon", "when lambo", "will it pump"]
-
-GROWTH_TRIGGERS = [
-    "investors", "visibility", "marketing", "reach", "exposure", "community growth",
-    "how to grow", "how can we grow", "get more holders", "get more people"
-]
-
+GROWTH_TRIGGERS = ["investors", "visibility", "marketing", "reach", "exposure", "community growth", "how to grow", "how can we grow", "get more holders", "get more people"]
 SCAM_PHRASES = ["dm", "promo", "partner", "collab", "shill", "call group", "inbox", "promotion", "reach out"]
 
 TRIGGER_CATEGORIES = (
@@ -83,7 +68,6 @@ https://moonshot.com?ref=Xonkwkbt80 and https://stillstuck.lol
 
 User: {question}
 Chad:"""
-
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     message = update.message
@@ -159,7 +143,6 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         except Exception as reply_fail:
             logger.warning(f"⚠️ Failed to send fallback message: {reply_fail}")
 
-
 async def welcome_new_member(update: Update, context: ContextTypes.DEFAULT_TYPE):
     member_update = update.chat_member
     old_status = member_update.old_chat_member.status
@@ -183,55 +166,48 @@ async def welcome_new_member(update: Update, context: ContextTypes.DEFAULT_TYPE)
                 parse_mode="Markdown"
             )
             await asyncio.sleep(1)
-
             await context.bot.send_message(
                 chat_id=member_update.chat.id,
                 text=f"💊 *Copium Meter* for {member.first_name}: *{random.choice(['💨 Mild Copium', '💊 Medium Dosage', '🔥 Max Cope Mode'])}*",
                 parse_mode="Markdown"
             )
             await asyncio.sleep(1)
-
             await context.bot.send_message(
                 chat_id=member_update.chat.id,
                 text=f"🎖️ *Cope Rank Assigned:* *{random.choice(['Cope Cadet 👿', 'Stuck Veteran 💀', 'Moon Cultist 🌕', 'Rug Resister 🛡️'])}*",
                 parse_mode="Markdown"
             )
             await asyncio.sleep(1)
-
             await context.bot.send_message(
                 chat_id=member_update.chat.id,
                 text=f"📘 *Did You Know?* {random.choice(['$STUCK only moons when you stop watching the chart 👀📉', 'Shieldy eats bots for breakfast 🍽️🤖', 'We have no utility — just memes and vibes 🧐🚀', 'Chad responds like he’s been rugged 5x this week 😬'])}",
                 parse_mode="Markdown"
             )
             await asyncio.sleep(1)
-
             await context.bot.send_message(
                 chat_id=member_update.chat.id,
                 text="📌 *P.S.* Don’t forget to check the *pinned message* for Moonshot link + group rules!",
                 parse_mode="Markdown"
             )
-
         except Exception as e:
             logger.warning(f"Could not welcome user: {e}")
 
-
-async def main():
+async def start_bot():
     app = ApplicationBuilder().token(BOT_TOKEN).defaults(Defaults(parse_mode="Markdown")).build()
     app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_message))
     app.add_handler(ChatMemberHandler(welcome_new_member, ChatMemberHandler.CHAT_MEMBER))
     logger.info("🚀 StuckSupportBot (a.k.a. Chad) is live and vibin’...")
-    await app.run_polling()
 
+    await app.initialize()
+    await app.start()
+    await app.updater.start_polling()
+    await app.updater.idle()
 
 if __name__ == '__main__':
-    import nest_asyncio
-    nest_asyncio.apply()
-
     try:
-        asyncio.run(main())
+        asyncio.run(start_bot())
     except RuntimeError as e:
-        if "cannot be closed" in str(e).lower() or "running event loop" in str(e).lower():
-            logger.warning("🔁 Loop already running. Switching to fallback...")
-            loop = asyncio.get_event_loop()
-            loop.create_task(main())
-            loop.run_forever()
+        logger.warning(f"⚠️ Runtime error: {e}")
+        loop = asyncio.get_event_loop()
+        loop.create_task(start_bot())
+        loop.run_forever()
