@@ -159,8 +159,8 @@ async def welcome_new_member(update: Update, context: ContextTypes.DEFAULT_TYPE)
             await context.bot.send_message(
                 chat_id=member_update.chat.id,
                 text=random.choice([
-                    f"📬 Yo *{member.first_name}*, welcome to *$STUCK rehab*. Check your baggage at the door 📉😐",
-                    f"💀 *{member.first_name}* just entered the stuck zone. *No refunds. No roadmap. Just vibes* 🔀",
+                    f"📬 Yo *{member.first_name}*, welcome to *$STUCK rehab*. Check your baggage at the door 📉🛐",
+                    f"💀 *{member.first_name}* just entered the stuck zone. *No refunds. No roadmap. Just vibes* 🌀",
                     f"🙌 *Welcome {member.first_name}* – your coping journey starts now. *Say gm and hold on tight* 🧠"
                 ]),
                 parse_mode="Markdown"
@@ -174,7 +174,7 @@ async def welcome_new_member(update: Update, context: ContextTypes.DEFAULT_TYPE)
             await asyncio.sleep(1)
             await context.bot.send_message(
                 chat_id=member_update.chat.id,
-                text=f"🎖️ *Cope Rank Assigned:* *{random.choice(['Cope Cadet 😈', 'Stuck Veteran 💀', 'Moon Cultist 🌕', 'Rug Resister 🛡️'])}*",
+                text=f"🎖️ *Cope Rank Assigned:* *{random.choice(['Cope Cadet 👿', 'Stuck Veteran 💀', 'Moon Cultist 🌕', 'Rug Resister 🛡️'])}*",
                 parse_mode="Markdown"
             )
             await asyncio.sleep(1)
@@ -209,5 +209,7 @@ if __name__ == '__main__':
 
     try:
         loop.run_until_complete(start_bot())
-    except KeyboardInterrupt:
-        logger.info("🚪 Bot shutdown requested by user.")
+    except RuntimeError as e:
+        logger.warning(f"⚠️ Runtime error while running bot: {e}")
+        loop.create_task(start_bot())
+        loop.run_forever()
