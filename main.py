@@ -3,6 +3,7 @@ import time
 import logging
 import asyncio
 import random
+import nest_asyncio
 from dotenv import load_dotenv
 from telegram import Update
 from telegram.ext import (
@@ -16,6 +17,8 @@ from telegram.ext import (
 import openai
 from collections import defaultdict, OrderedDict
 from datetime import datetime, timedelta
+
+nest_asyncio.apply()
 
 load_dotenv()
 BOT_TOKEN = os.getenv("BOT_TOKEN")
