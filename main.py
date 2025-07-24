@@ -43,11 +43,12 @@ WEBSITE_TRIGGERS = ["website", "site", "link", "official page", "where’s the s
 WEN_MOON_TRIGGERS = ["wen moon", "when moon", "moon", "when lambo", "will it pump"]
 GROWTH_TRIGGERS = ["investors", "visibility", "marketing", "reach", "exposure", "community growth", "how to grow", "how can we grow", "get more holders", "get more people"]
 SCAM_PHRASES = ["dm", "promo", "partner", "collab", "shill", "call group", "inbox", "promotion", "reach out"]
+GENERAL_QUESTIONS = ["what is stuck", "what's this project about", "what is this", "what’s this"]
 
 TRIGGER_CATEGORIES = (
     BUY_TRIGGERS + DEAD_TRIGGERS + ROADMAP_TRIGGERS + UTILITY_TRIGGERS +
     TEAM_TRIGGERS + TAX_TRIGGERS + WEBSITE_TRIGGERS + WEN_MOON_TRIGGERS +
-    GROWTH_TRIGGERS
+    GROWTH_TRIGGERS + GENERAL_QUESTIONS
 )
 
 BASE_PROMPT = """You're Chad, the chill but knowledgeable $STUCK community helper in Telegram. 
@@ -56,7 +57,7 @@ You're still a degen at heart, but you're here to actually help people — not j
 Your tone is calm, supportive, and witty. You speak with crypto lingo, but also offer real explanations when needed. 
 Be cool, grounded, and don’t yell or act like a clown.
 
-Important context: $STUCK is more than a meme coin — it's a support group to help people grow, learn, and recover from crypto trauma. Community first, charts second.
+Important context: $STUCK is *first and foremost* a support group to help people grow, learn, and recover from crypto trauma. Memes are the flavor, but growth is the goal.
 
 Key points:
 - Buying: say $STUCK is *only* on Moonshot until $1M liquidity  
