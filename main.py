@@ -27,7 +27,6 @@ logger = logging.getLogger(__name__)
 
 user_last_message_time = defaultdict(lambda: datetime.min)
 RATE_LIMIT_SECONDS = 10
-
 cached_replies = OrderedDict()
 MAX_CACHE_SIZE = 50
 
@@ -192,24 +191,12 @@ async def welcome_new_member(update: Update, context: ContextTypes.DEFAULT_TYPE)
         except Exception as e:
             logger.warning(f"Could not welcome user: {e}")
 
-async def start_bot():
+async def run_bot():
     app = ApplicationBuilder().token(BOT_TOKEN).defaults(Defaults(parse_mode="Markdown")).build()
     app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_message))
     app.add_handler(ChatMemberHandler(welcome_new_member, ChatMemberHandler.CHAT_MEMBER))
     logger.info("🚀 StuckSupportBot (a.k.a. Chad) is live and vibin’...")
-
     await app.run_polling()
 
-if __name__ == '__main__':
-    try:
-        loop = asyncio.get_event_loop()
-    except RuntimeError:
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-
-    try:
-        loop.run_until_complete(start_bot())
-    except RuntimeError as e:
-        logger.warning(f"⚠️ Runtime error while running bot: {e}")
-        loop.create_task(start_bot())
-        loop.run_forever()
+if __name__ == "__main__":
+    asyncio.run(run_bot())
