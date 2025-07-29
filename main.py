@@ -90,16 +90,12 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = message.text.lower()
 
     if any(phrase in text for phrase in SCAM_PHRASES):
-        try:
-            await message.delete()
-            logger.info("🚫 Deleted spam/scam.")
-        except Exception as e:
-            logger.warning(f"❌ Couldn't delete: {e}")
+        logger.info("⚠️ Scam-like phrase detected, but not deleted.")
         return
 
     triggered = next((word for word in TRIGGER_CATEGORIES if word in text), None)
     if not triggered:
-        logger.info("🛑 No trigger matched for message.")
+        logger.info("🔝 No trigger matched for message.")
         return
 
     logger.info(f"💬 Received message: {message.text} from {message.from_user.username or message.from_user.id}")
@@ -164,8 +160,8 @@ async def welcome_new_member(update: Update, context: ContextTypes.DEFAULT_TYPE)
             await context.bot.send_message(
                 chat_id=member_update.chat.id,
                 text=random.choice([
-                    f"📬 Yo *{member.first_name}*, welcome to *$STUCK rehab*. Check your baggage at the door 📉🛐",
-                    f"💀 *{member.first_name}* just entered the stuck zone. *No refunds. No roadmap. Just vibes* 🌀",
+                    f"📬 Yo *{member.first_name}*, welcome to *$STUCK rehab*. Check your baggage at the door 📉😐",
+                    f"💀 *{member.first_name}* just entered the stuck zone. *No refunds. No roadmap. Just vibes* 🔀",
                     f"🙌 *Welcome {member.first_name}* – your coping journey starts now. *Say gm and hold on tight* 🧠"
                 ]),
                 parse_mode="Markdown"
@@ -179,13 +175,13 @@ async def welcome_new_member(update: Update, context: ContextTypes.DEFAULT_TYPE)
             await asyncio.sleep(1)
             await context.bot.send_message(
                 chat_id=member_update.chat.id,
-                text=f"🎖️ *Cope Rank Assigned:* *{random.choice(['Cope Cadet 👿', 'Stuck Veteran 💀', 'Moon Cultist 🌕', 'Rug Resister 🛡️'])}*",
+                text=f"🎖️ *Cope Rank Assigned:* *{random.choice(['Cope Cadet 😈', 'Stuck Veteran 💀', 'Moon Cultist 🌕', 'Rug Resister 🛡️'])}*",
                 parse_mode="Markdown"
             )
             await asyncio.sleep(1)
             await context.bot.send_message(
                 chat_id=member_update.chat.id,
-                text=f"📘 *Did You Know?* {random.choice(['$STUCK only moons when you stop watching the chart 👀📉', 'Shieldy eats bots for breakfast 🍽️🤖', 'We have no utility — just memes and vibes 🧐🚀', 'Chad responds like he’s been rugged 5x this week 😬'])}",
+                text=f"📘 *Did You Know?* {random.choice(['$STUCK only moons when you stop watching the chart 👀📉', 'Shieldy eats bots for breakfast 🍽️🤖', 'We have no utility — just memes and vibes 😉🚀', 'Chad responds like he’s been rugged 5x this week 😬'])}",
                 parse_mode="Markdown"
             )
             await asyncio.sleep(1)
