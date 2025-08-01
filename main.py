@@ -16,6 +16,7 @@ from telegram.ext import (
     Defaults,
 )
 import openai
+from openai import AsyncOpenAI
 from collections import defaultdict, OrderedDict
 from datetime import datetime, timedelta
 
@@ -24,7 +25,8 @@ load_dotenv()
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-openai.api_key = OPENAI_API_KEY
+BIRDEYE_API_KEY = os.getenv("BIRDEYE_API_KEY")
+client = AsyncOpenAI(api_key=OPENAI_API_KEY)
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -77,16 +79,63 @@ https://moonshot.com?ref=Xonkwkbt80 and https://stillstuck.lol
 User: {question}
 Chad:"""
 
-# ✅ Ticker Analyzer
+# ✅ Full message handler
+async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    message = update.message
+    if not message or not message.text:
+        return
+
+    text = message.text.strip().lower()
+
+    if any(phrase in text for phrase in SCAM_PHRASES):
+        try:
+            await message.delete()
+        except:
+            pass
+        return
+
+    triggered = next((word for word in TRIGGER_CATEGORIES if word in text), None)
+    if not triggered:
+        return
+
+    logger.info(f"💬 Triggered response to message: {text} from {message.from_user.username or message.from_user.id}")
+
+    await context.bot.send_chat_action(chat_id=message.chat_id, action="typing")
+    await asyncio.sleep(2)
+
+    if triggered in cached_replies:
+        return await message.reply_text(cached_replies[triggered])
+
+    try:
+        response = await client.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {"role": "system", "content": "You're a calm, smart Telegram crypto helper named Chad who speaks like a chill degen and helps the $STUCK community."},
+                {"role": "user", "content": BASE_PROMPT.format(question=message.text)}
+            ],
+            max_tokens=160,
+            temperature=0.85
+        )
+        reply = response.choices[0].message.content.strip()
+        cached_replies[triggered] = reply
+
+        if len(cached_replies) > MAX_CACHE_SIZE:
+            cached_replies.popitem(last=False)
+
+        await message.reply_text(reply)
+
+    except Exception as e:
+        logger.exception(f"🔥 Error in handle_message: {e}")
+        await message.reply_text("Chad’s passed out from too much cope. Try again later.")
+
+# ✅ Ticker analyzer
 async def handle_ticker_analysis(update: Update, context: ContextTypes.DEFAULT_TYPE):
     message = update.message
     if not message or not message.text:
         return
 
-    text = message.text.strip()
-    lowered = text.lower()
-
-    if not any(k in lowered for k in TICKER_KEYWORDS):
+    text = message.text.strip().lower()
+    if not any(k in text for k in TICKER_KEYWORDS):
         return
 
     ticker_parts = [word for word in text.split() if word.startswith("$") and len(word) > 1]
@@ -97,20 +146,20 @@ async def handle_ticker_analysis(update: Update, context: ContextTypes.DEFAULT_T
     birdeye_token = ticker.replace("$", "")
     birdeye_url = f"https://public-api.birdeye.so/public/token/{birdeye_token}?include=metadata"
 
-    try:
-        headers = {"X-API-KEY": os.getenv("BIRDEYE_API_KEY")}
-        res = requests.get(birdeye_url, headers=headers)
-        token_data = res.json().get("data", {})
-    except:
-        token_data = {}
-
     token_info = f"\nReal-Time Stats for {ticker}:\n"
-    if token_data:
-        token_info += f"Price: ${float(token_data.get('price_usd', 0)):.6f}\n"
-        token_info += f"Market Cap: ${int(token_data.get('market_cap', 0)):,}\n"
-        token_info += f"Liquidity: ${int(token_data.get('liquidity', 0)):,}\n"
-        token_info += f"24h Volume: ${int(token_data.get('volume_24h', 0)):,}\n"
-    else:
+    try:
+        if BIRDEYE_API_KEY:
+            headers = {"X-API-KEY": BIRDEYE_API_KEY}
+            res = requests.get(birdeye_url, headers=headers)
+            token_data = res.json().get("data", {})
+            token_info += f"Price: ${float(token_data.get('price_usd', 0)):.6f}\n"
+            token_info += f"Market Cap: ${int(token_data.get('market_cap', 0)):,}\n"
+            token_info += f"Liquidity: ${int(token_data.get('liquidity', 0)):,}\n"
+            token_info += f"24h Volume: ${int(token_data.get('volume_24h', 0)):,}\n"
+        else:
+            token_info += "Birdeye not connected. Just vibes 🌊\n"
+    except Exception as e:
+        logger.warning(f"🐛 Failed to fetch Birdeye stats: {e}")
         token_info += "⚠️ No real data found. Might be new or not on Solana.\n"
 
     prompt = f"""
@@ -120,7 +169,6 @@ Analyze the token {ticker} and give:
 - Cons ❌  
 - Vibe check 🙀  
 Then give a final rating as one of: WINNER, MID, or STUCK.
-
 Use degen slang, stay brief but spicy. End with:  
 "Verdict: STUCK/WINNER/MID"
 """
@@ -129,76 +177,23 @@ Use degen slang, stay brief but spicy. End with:
     await asyncio.sleep(2)
 
     try:
-        response = await asyncio.to_thread(
-            lambda: client.chat.completions.create(
-                model="gpt-4o",
-                messages=[
-                    {"role": "system", "content": "You're a crypto degen meme expert."},
-                    {"role": "user", "content": prompt}
-                ],
-                max_tokens=200,
-                temperature=0.9
-            )
+        response = await client.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {"role": "system", "content": "You're a crypto degen meme expert."},
+                {"role": "user", "content": prompt}
+            ],
+            max_tokens=200,
+            temperature=0.9
         )
         reply = response.choices[0].message.content.strip()
         await message.reply_text(reply + "\n\n" + token_info)
 
-    except asyncio.TimeoutError:
-        await message.reply_text("⏱ Chad is still digging through charts… try again soon.")
     except Exception as e:
-        logger.exception(f"Error in ticker analyzer: {e}")
-        await message.reply_text("Something broke. Probably the chart. Try again later.")
-        return
+        logger.warning(f"❌ Error during analysis: {e}")
+        await message.reply_text("Couldn’t process that one. Try again later.")
 
-    triggered = next((word for word in TRIGGER_CATEGORIES if word in text), None)
-    if not triggered:
-        logger.info("🔝 No trigger matched for message.")
-        return
-
-    logger.info(f"💬 Received message: {message.text} from {message.from_user.username or message.from_user.id}")
-
-    try:
-        await context.bot.send_chat_action(chat_id=message.chat_id, action="typing")
-        await asyncio.sleep(2)
-    except:
-        pass
-
-    if triggered in cached_replies:
-        await message.reply_text(cached_replies[triggered])
-        return
-
-    try:
-        response = await asyncio.to_thread(
-            lambda: client.chat.completions.create(
-                model="gpt-4o",
-                messages=[
-                    {"role": "system", "content": "You're a calm, smart Telegram crypto helper named Chad who speaks like a chill degen and helps the $STUCK community."},
-                    {"role": "user", "content": BASE_PROMPT.format(question=message.text)}
-                ],
-                max_tokens=160,
-                temperature=0.85
-            )
-        )
-
-        reply = response.choices[0].message.content.strip()
-        cached_replies[triggered] = reply
-
-        if len(cached_replies) > MAX_CACHE_SIZE:
-            cached_replies.popitem(last=False)
-
-        await message.reply_text(reply)
-
-    except asyncio.TimeoutError:
-        logger.warning("🕒 OpenAI timeout.")
-        await message.reply_text("Chad’s stuck thinking too hard. Try again in a sec.")
-    except Exception as e:
-        logger.exception(f"🔥 Full error during OpenAI call or reply: {e}")
-        try:
-            await message.reply_text("Chad's passed out from too much cope. Try again later.")
-        except Exception as reply_fail:
-            logger.warning(f"⚠️ Failed to send fallback message: {reply_fail}")
-
-# 🫡 Welcome Handler
+# 🫡 Welcome handler
 async def welcome_new_member(update: Update, context: ContextTypes.DEFAULT_TYPE):
     member_update = update.chat_member
     old_status = member_update.old_chat_member.status
@@ -206,10 +201,8 @@ async def welcome_new_member(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
     if old_status == "left" and new_status == "member":
         member = member_update.new_chat_member.user
-
         if member.is_bot:
             return
-
         try:
             await context.bot.send_message(
                 chat_id=member_update.chat.id,
@@ -236,15 +229,15 @@ async def welcome_new_member(update: Update, context: ContextTypes.DEFAULT_TYPE)
                 text="📌 *P.S.* Don’t forget to check the *pinned message* for Moonshot link + group rules!"
             )
         except Exception as e:
-            logger.warning(f"Could not welcome user: {e}")
+            logger.warning(f"Welcome error: {e}")
 
-# 🚀 Start Bot
+# 🟢 Bot entry point
 async def run_bot():
     app = ApplicationBuilder().token(BOT_TOKEN).defaults(Defaults(parse_mode="Markdown")).build()
     app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_ticker_analysis))
     app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_message))
     app.add_handler(ChatMemberHandler(welcome_new_member, ChatMemberHandler.CHAT_MEMBER))
-    logger.info("🚀 StuckSupportBot (a.k.a. Chad) is live and vibin’...")
+    logger.info("🚀 StuckSupportBot is live and vibin’...")
     await app.run_polling()
 
 if __name__ == "__main__":
