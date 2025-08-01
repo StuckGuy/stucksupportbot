@@ -19,8 +19,8 @@ from collections import defaultdict, OrderedDict
 from datetime import datetime, timedelta
 
 nest_asyncio.apply()
-
 load_dotenv()
+
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 openai.api_key = OPENAI_API_KEY
@@ -33,6 +33,7 @@ RATE_LIMIT_SECONDS = 10
 cached_replies = OrderedDict()
 MAX_CACHE_SIZE = 50
 
+# Trigger Categories
 BUY_TRIGGERS = ["where to buy", "how to buy", "buy stuck", "buy $stuck", "chart", "moonshot", "token", "$stuck", "how do i get", "where can i get", "can i buy", "is it on moonshot"]
 DEAD_TRIGGERS = ["dead", "rug", "abandoned", "no team", "still alive", "exit", "pull"]
 ROADMAP_TRIGGERS = ["roadmap", "plans", "future", "milestone", "what’s next", "what's next", "what are you building"]
@@ -50,6 +51,8 @@ TRIGGER_CATEGORIES = (
     TEAM_TRIGGERS + TAX_TRIGGERS + WEBSITE_TRIGGERS + WEN_MOON_TRIGGERS +
     GROWTH_TRIGGERS + GENERAL_QUESTIONS
 )
+
+TICKER_KEYWORDS = ["analyze", "check", "is", "review"]
 
 BASE_PROMPT = """You're Chad, the chill but knowledgeable $STUCK community helper in Telegram. 
 You're still a degen at heart, but you're here to actually help people — not just meme.
@@ -74,6 +77,65 @@ https://moonshot.com?ref=Xonkwkbt80 and https://stillstuck.lol
 User: {question}
 Chad:"""
 
+# ✅ Ticker Analyzer
+async def handle_ticker_analysis(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    message = update.message
+    if not message or not message.text:
+        return
+
+    text = message.text.strip()
+    lowered = text.lower()
+
+    if not any(k in lowered for k in TICKER_KEYWORDS):
+        return
+
+    ticker_parts = [word for word in text.split() if word.startswith("$") and len(word) > 1]
+    if not ticker_parts:
+        return await message.reply_text("Please include a ticker like `$STUCK` to analyze.")
+
+    ticker = ticker_parts[0].upper()
+
+    prompt = f"""
+You are a degen crypto analyst who gives brutally honest, meme-style breakdowns of meme coins.
+Analyze the token {ticker} and give:
+- Pros ✅  
+- Cons ❌  
+- Vibe check 👀  
+Then give a final rating as one of: WINNER, MID, or STUCK.
+
+Use degen slang, stay brief but spicy. End with:  
+"Verdict: STUCK/WINNER/MID"
+"""
+
+    await context.bot.send_chat_action(chat_id=message.chat_id, action="typing")
+    await asyncio.sleep(2)
+
+    try:
+        response = await asyncio.wait_for(
+            asyncio.to_thread(
+                lambda: openai.ChatCompletion.create(
+                    model="gpt-4o",
+                    messages=[
+                        {"role": "system", "content": "You're a crypto degen meme expert."},
+                        {"role": "user", "content": prompt}
+                    ],
+                    max_tokens=200,
+                    temperature=0.9
+                )
+            ),
+            timeout=10
+        )
+
+        reply = response.choices[0].message.content.strip()
+        await message.reply_text(reply)
+
+    except asyncio.TimeoutError:
+        await message.reply_text("⏱ Chad is still digging through charts… try again soon.")
+    except Exception as e:
+        logger.exception(f"Error in ticker analyzer: {e}")
+        await message.reply_text("Something broke. Probably the chart. Try again later.")
+
+# 🔁 Main Community Handler
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     message = update.message
     if not message or not message.text:
@@ -144,6 +206,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         except Exception as reply_fail:
             logger.warning(f"⚠️ Failed to send fallback message: {reply_fail}")
 
+# 🫡 Welcome Message
 async def welcome_new_member(update: Update, context: ContextTypes.DEFAULT_TYPE):
     member_update = update.chat_member
     old_status = member_update.old_chat_member.status
@@ -193,8 +256,10 @@ async def welcome_new_member(update: Update, context: ContextTypes.DEFAULT_TYPE)
         except Exception as e:
             logger.warning(f"Could not welcome user: {e}")
 
+# 🧠 Run Bot
 async def run_bot():
     app = ApplicationBuilder().token(BOT_TOKEN).defaults(Defaults(parse_mode="Markdown")).build()
+    app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_ticker_analysis))  # Added first
     app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_message))
     app.add_handler(ChatMemberHandler(welcome_new_member, ChatMemberHandler.CHAT_MEMBER))
     logger.info("🚀 StuckSupportBot (a.k.a. Chad) is live and vibin’...")
