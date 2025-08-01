@@ -4,6 +4,7 @@ import logging
 import asyncio
 import random
 import nest_asyncio
+import requests
 from dotenv import load_dotenv
 from telegram import Update
 from telegram.ext import (
@@ -93,6 +94,24 @@ async def handle_ticker_analysis(update: Update, context: ContextTypes.DEFAULT_T
         return await message.reply_text("Please include a ticker like `$STUCK` to analyze.")
 
     ticker = ticker_parts[0].upper()
+    birdeye_token = ticker.replace("$", "")
+    birdeye_url = f"https://public-api.birdeye.so/public/token/{birdeye_token}?include=metadata"
+
+    try:
+        headers = {"X-API-KEY": os.getenv("BIRDEYE_API_KEY")}
+        res = requests.get(birdeye_url, headers=headers)
+        token_data = res.json().get("data", {})
+    except:
+        token_data = {}
+
+    token_info = f"\nReal-Time Stats for {ticker}:\n"
+    if token_data:
+        token_info += f"Price: ${float(token_data.get('price_usd', 0)):.6f}\n"
+        token_info += f"Market Cap: ${int(token_data.get('market_cap', 0)):,}\n"
+        token_info += f"Liquidity: ${int(token_data.get('liquidity', 0)):,}\n"
+        token_info += f"24h Volume: ${int(token_data.get('volume_24h', 0)):,}\n"
+    else:
+        token_info += "⚠️ No real data found. Might be new or not on Solana.\n"
 
     prompt = f"""
 You are a degen crypto analyst who gives brutally honest, meme-style breakdowns of meme coins.
@@ -122,32 +141,13 @@ Use degen slang, stay brief but spicy. End with:
             )
         )
         reply = response.choices[0].message.content.strip()
-        await message.reply_text(reply)
+        await message.reply_text(reply + "\n\n" + token_info)
 
     except asyncio.TimeoutError:
         await message.reply_text("⏱ Chad is still digging through charts… try again soon.")
     except Exception as e:
         logger.exception(f"Error in ticker analyzer: {e}")
         await message.reply_text("Something broke. Probably the chart. Try again later.")
-
-# 📩 Message Handler
-async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    message = update.message
-    if not message or not message.text:
-        return
-
-    user_id = message.from_user.id
-    now = datetime.now()
-
-    if (now - user_last_message_time[user_id]).total_seconds() < RATE_LIMIT_SECONDS:
-        logger.info("⏱️ Rate limit triggered.")
-        return
-    user_last_message_time[user_id] = now
-
-    text = message.text.lower()
-
-    if any(phrase in text for phrase in SCAM_PHRASES):
-        logger.info("⚠️ Scam-like phrase detected, but not deleted.")
         return
 
     triggered = next((word for word in TRIGGER_CATEGORIES if word in text), None)
