@@ -15,7 +15,7 @@ from telegram.ext import (
     ChatMemberHandler,
     Defaults,
 )
-from openai import OpenAI
+import openai
 from collections import defaultdict, OrderedDict
 from datetime import datetime, timedelta
 
