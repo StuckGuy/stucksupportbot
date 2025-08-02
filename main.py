@@ -166,7 +166,7 @@ async def handle_ticker_analysis(update: Update, context: ContextTypes.DEFAULT_T
             res = requests.get(search_url, headers=headers)
             token_address = res.json()["data"][0]["address"]
 
-        metrics_url = f"https://public-api.birdeye.so/public/metrics/token/{token_address}"
+        metrics_url = f"https://public-api.birdeye.so/public/token/{token_address}"
         res = requests.get(metrics_url, headers=headers)
         token_data = res.json().get("data", {})
 
@@ -190,7 +190,7 @@ Analyze the token {token_identifier} and give:
 - Vibe check 🙀  
 Then give a final rating as one of: WINNER, MID, or STUCK.
 
-Bonus Tip: If this token had a Tinder bio, what would it say?
+Bonus Tip: If this token had a Tinder bio, drop the funniest one-liner.
 
 Use degen slang, stay brief but spicy. End with:  
 "Verdict: STUCK/WINNER/MID"
