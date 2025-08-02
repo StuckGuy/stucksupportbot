@@ -164,13 +164,27 @@ async def handle_ticker_analysis(update: Update, context: ContextTypes.DEFAULT_T
         else:
             search_url = f"https://public-api.birdeye.so/public/search?q={token_identifier}"
             res = requests.get(search_url, headers=headers)
+            logger.info(f"Search response: {res.json()}")
             token_address = res.json()["data"][0]["address"]
 
+        logger.info(f"Token address: {token_address}")
+
+        # Try primary fetch
         metrics_url = f"https://public-api.birdeye.so/public/metrics/token/{token_address}"
         res = requests.get(metrics_url, headers=headers)
-        token_data = res.json().get("data", {})
+        logger.info(f"Metrics response: {res.text}")
+        token_data = res.json().get("data")
 
-    except:
+        # Fallback if not found
+        if not token_data:
+            logger.info("Trying fallback endpoint for token data...")
+            fallback_url = f"https://public-api.birdeye.so/public/token/{token_address}"
+            res = requests.get(fallback_url, headers=headers)
+            logger.info(f"Fallback response: {res.text}")
+            token_data = res.json().get("data")
+
+    except Exception as e:
+        logger.error(f"Birdeye API error: {e}")
         token_data = {}
 
     token_info = f"\nReal-Time Stats for {token_identifier}:\n"
