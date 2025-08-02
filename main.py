@@ -169,19 +169,15 @@ async def handle_ticker_analysis(update: Update, context: ContextTypes.DEFAULT_T
 
         logger.info(f"Token address: {token_address}")
 
-        # Try primary fetch
-        metrics_url = f"https://public-api.birdeye.so/public/metrics/token/{token_address}"
-        res = requests.get(metrics_url, headers=headers)
-        logger.info(f"Metrics response: {res.text}")
+        # ✅ New working Birdeye price endpoint
+        price_url = f"https://public-api.birdeye.so/defi/price?address={token_address}"
+        full_headers = {
+            "X-API-KEY": BIRDEYE_API_KEY,
+            "x-chain": "solana"
+        }
+        res = requests.get(price_url, headers=full_headers)
+        logger.info(f"Price response: {res.text}")
         token_data = res.json().get("data")
-
-        # Fallback if not found
-        if not token_data:
-            logger.info("Trying fallback endpoint for token data...")
-            fallback_url = f"https://public-api.birdeye.so/public/token/{token_address}"
-            res = requests.get(fallback_url, headers=headers)
-            logger.info(f"Fallback response: {res.text}")
-            token_data = res.json().get("data")
 
     except Exception as e:
         logger.error(f"Birdeye API error: {e}")
@@ -189,10 +185,9 @@ async def handle_ticker_analysis(update: Update, context: ContextTypes.DEFAULT_T
 
     token_info = f"\nReal-Time Stats for {token_identifier}:\n"
     if token_data:
-        token_info += f"Price: ${float(token_data.get('price_usd', 0)):.6f}\n"
-        token_info += f"Market Cap: ${int(token_data.get('market_cap', 0)):,}\n"
+        token_info += f"Price: ${float(token_data.get('value', 0)):.6f}\n"
+        token_info += f"Updated: <code>{token_data.get('updateTime')}</code>\n"
         token_info += f"Liquidity: ${int(token_data.get('liquidity', 0)):,}\n"
-        token_info += f"24h Volume: ${int(token_data.get('volume_24h', 0)):,}\n"
     else:
         token_info += "⚠️ No real data found. Might be new or not on Solana.\n"
 
