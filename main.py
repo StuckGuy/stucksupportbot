@@ -148,14 +148,19 @@ async def handle_ticker_analysis(update: Update, context: ContextTypes.DEFAULT_T
 
     ticker = ticker_parts[0].upper()
     birdeye_token = ticker.replace("$", "")
-    birdeye_url = f"https://public-api.birdeye.so/public/metrics/token/{birdeye_token}"
+    headers = {"X-API-KEY": BIRDEYE_API_KEY}
 
     try:
-        headers = {"X-API-KEY": BIRDEYE_API_KEY}
-        res = requests.get(birdeye_url, headers=headers)
-        if res.status_code != 200:
-            raise ValueError("Token not found.")
+        # Step 1: Search for the token to get address
+        search_url = f"https://public-api.birdeye.so/public/search?q={birdeye_token}"
+        res = requests.get(search_url, headers=headers)
+        token_address = res.json()["data"][0]["address"]
+
+        # Step 2: Get metrics using address
+        metrics_url = f"https://public-api.birdeye.so/public/metrics/token?address={token_address}"
+        res = requests.get(metrics_url, headers=headers)
         token_data = res.json().get("data", {})
+
     except:
         token_data = {}
 
@@ -176,7 +181,7 @@ Analyze the token {ticker} and give:
 - Vibe check 🙀  
 Then give a final rating as one of: WINNER, MID, or STUCK.
 
-Bonus Tip: Imagine this token had a Tinder bio. What would it say to win over a degen's heart?
+Bonus Tip: If this token had a Tinder bio, what would it say?
 
 Use degen slang, stay brief but spicy. End with:  
 "Verdict: STUCK/WINNER/MID"
