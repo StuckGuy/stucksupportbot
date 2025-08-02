@@ -148,7 +148,7 @@ async def handle_ticker_analysis(update: Update, context: ContextTypes.DEFAULT_T
 
     ticker = ticker_parts[0].upper()
     birdeye_token = ticker.replace("$", "")
-    birdeye_url = f"https://public-api.birdeye.so/public/token/{birdeye_token}?include=metadata"
+    birdeye_url = f"https://public-api.birdeye.so/public/metrics/token/{birdeye_token}"
 
     try:
         headers = {"X-API-KEY": BIRDEYE_API_KEY}
