@@ -142,21 +142,30 @@ async def handle_ticker_analysis(update: Update, context: ContextTypes.DEFAULT_T
     if not any(k in lowered for k in TICKER_KEYWORDS):
         return
 
-    ticker_parts = [word for word in text.split() if word.startswith("$") and len(word) > 1]
-    if not ticker_parts:
-        return await message.reply_text("Please include a ticker like `$STUCK` to analyze.")
+    words = text.split()
+    token_identifier = None
 
-    ticker = ticker_parts[0].upper()
-    birdeye_token = ticker.replace("$", "")
+    for word in words:
+        if word.startswith("$") and len(word) > 1:
+            token_identifier = word[1:]  # Strip dollar sign
+            break
+        elif len(word) in (44, 45):
+            token_identifier = word
+            break
+
+    if not token_identifier:
+        return await message.reply_text("Please include a token ticker like `$STUCK` or a valid address.")
+
     headers = {"X-API-KEY": BIRDEYE_API_KEY}
 
     try:
-        # Step 1: Search for the token to get address
-        search_url = f"https://public-api.birdeye.so/public/search?q={birdeye_token}"
-        res = requests.get(search_url, headers=headers)
-        token_address = res.json()["data"][0]["address"]
+        if len(token_identifier) in (44, 45):
+            token_address = token_identifier
+        else:
+            search_url = f"https://public-api.birdeye.so/public/search?q={token_identifier}"
+            res = requests.get(search_url, headers=headers)
+            token_address = res.json()["data"][0]["address"]
 
-        # Step 2: Get metrics using address
         metrics_url = f"https://public-api.birdeye.so/public/metrics/token?address={token_address}"
         res = requests.get(metrics_url, headers=headers)
         token_data = res.json().get("data", {})
@@ -164,7 +173,7 @@ async def handle_ticker_analysis(update: Update, context: ContextTypes.DEFAULT_T
     except:
         token_data = {}
 
-    token_info = f"\nReal-Time Stats for {ticker}:\n"
+    token_info = f"\nReal-Time Stats for {token_identifier}:\n"
     if token_data:
         token_info += f"Price: ${float(token_data.get('price_usd', 0)):.6f}\n"
         token_info += f"Market Cap: ${int(token_data.get('market_cap', 0)):,}\n"
@@ -175,7 +184,7 @@ async def handle_ticker_analysis(update: Update, context: ContextTypes.DEFAULT_T
 
     prompt = f"""
 You are a degen crypto analyst who gives brutally honest, meme-style breakdowns of meme coins.
-Analyze the token {ticker} and give:
+Analyze the token {token_identifier} and give:
 - Pros ✅  
 - Cons ❌  
 - Vibe check 🙀  
