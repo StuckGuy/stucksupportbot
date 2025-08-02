@@ -143,47 +143,44 @@ async def handle_ticker_analysis(update: Update, context: ContextTypes.DEFAULT_T
         return
 
     words = text.split()
-    token_identifier = None
+    token_address = None
+    ticker = None
 
     for word in words:
         if word.startswith("$") and len(word) > 1:
-            token_identifier = word[1:]  # Strip dollar sign
-            break
+            ticker = word[1:]  # Strip dollar sign
         elif len(word) in (44, 45):
-            token_identifier = word
-            break
-
-    if not token_identifier:
-        return await message.reply_text("Please include a token ticker like `$STUCK` or a valid address.")
+            token_address = word
 
     headers = {"X-API-KEY": BIRDEYE_API_KEY}
 
-    try:
-        if len(token_identifier) in (44, 45):
-            token_address = token_identifier
-        else:
-            search_url = f"https://public-api.birdeye.so/public/search?q={token_identifier}"
+    # Priority: Use address if found, fallback to ticker search if needed
+    if not token_address and ticker:
+        try:
+            search_url = f"https://public-api.birdeye.so/public/search?q={ticker}"
             res = requests.get(search_url, headers=headers)
-            logger.info(f"Search response: {res.json()}")
             token_address = res.json()["data"][0]["address"]
+        except Exception as e:
+            logger.error(f"Token search error for {ticker}: {e}")
 
-        logger.info(f"Token address: {token_address}")
+    if not token_address:
+        return await message.reply_text("❌ Couldn’t find a valid token address. Try again with just `$ticker` or address.")
 
+    logger.info(f"Using address: {token_address} (from {'ticker' if not token_address else 'address'})")
+
+    try:
         price_url = f"https://public-api.birdeye.so/public/token/{token_address}"
         res = requests.get(price_url, headers=headers)
-        logger.info(f"Price response: {res.text}")
         token_data = res.json().get("data", {})
-
     except Exception as e:
-        logger.error(f"Birdeye API error: {e}")
+        logger.error(f"Birdeye fetch error: {e}")
         token_data = {}
 
-    token_info = f"\nReal-Time Stats for {token_identifier}:\n"
+    token_info = f"\nReal-Time Stats for {f'${ticker} ' if ticker else ''}({token_address}):\n"
     if token_data:
         price = token_data.get('priceUsdt', 0)
         volume = token_data.get('volume24h', 0)
         market_cap = token_data.get('marketCap', 0)
-
         token_info += f"Price: ${float(price):.6f}\n"
         token_info += f"24h Volume: ${int(volume):,}\n"
         token_info += f"Market Cap: ${int(market_cap):,}\n"
@@ -192,7 +189,7 @@ async def handle_ticker_analysis(update: Update, context: ContextTypes.DEFAULT_T
 
     prompt = f"""
 You are a degen crypto analyst who gives brutally honest, meme-style breakdowns of meme coins.
-Analyze the token {token_identifier} and give:
+Analyze the token {ticker or token_address} and give:
 - Pros ✅  
 - Cons ❌  
 - Vibe check 🙀  
