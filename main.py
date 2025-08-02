@@ -176,6 +176,8 @@ Analyze the token {ticker} and give:
 - Vibe check 🙀  
 Then give a final rating as one of: WINNER, MID, or STUCK.
 
+Bonus Tip: If this token had a Tinder bio, what would it say?
+
 Use degen slang, stay brief but spicy. End with:  
 "Verdict: STUCK/WINNER/MID"
 """
@@ -191,7 +193,7 @@ Use degen slang, stay brief but spicy. End with:
                     {"role": "system", "content": "You're a crypto degen meme expert."},
                     {"role": "user", "content": prompt}
                 ],
-                max_tokens=200,
+                max_tokens=300,
                 temperature=0.9
             )
         )
