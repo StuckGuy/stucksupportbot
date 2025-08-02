@@ -166,7 +166,7 @@ async def handle_ticker_analysis(update: Update, context: ContextTypes.DEFAULT_T
             res = requests.get(search_url, headers=headers)
             token_address = res.json()["data"][0]["address"]
 
-        metrics_url = f"https://public-api.birdeye.so/public/token/{token_address}"
+        metrics_url = f"https://public-api.birdeye.so/public/metrics/token/{token_address}"
         res = requests.get(metrics_url, headers=headers)
         token_data = res.json().get("data", {})
 
