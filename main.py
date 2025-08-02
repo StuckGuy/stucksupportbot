@@ -169,15 +169,10 @@ async def handle_ticker_analysis(update: Update, context: ContextTypes.DEFAULT_T
 
         logger.info(f"Token address: {token_address}")
 
-        # ✅ New working Birdeye price endpoint
-        price_url = f"https://public-api.birdeye.so/defi/price?address={token_address}"
-        full_headers = {
-            "X-API-KEY": BIRDEYE_API_KEY,
-            "x-chain": "solana"
-        }
-        res = requests.get(price_url, headers=full_headers)
+        price_url = f"https://public-api.birdeye.so/public/token/{token_address}"
+        res = requests.get(price_url, headers=headers)
         logger.info(f"Price response: {res.text}")
-        token_data = res.json().get("data")
+        token_data = res.json().get("data", {})
 
     except Exception as e:
         logger.error(f"Birdeye API error: {e}")
@@ -185,9 +180,13 @@ async def handle_ticker_analysis(update: Update, context: ContextTypes.DEFAULT_T
 
     token_info = f"\nReal-Time Stats for {token_identifier}:\n"
     if token_data:
-        token_info += f"Price: ${float(token_data.get('value', 0)):.6f}\n"
-        token_info += f"Updated: <code>{token_data.get('updateTime')}</code>\n"
-        token_info += f"Liquidity: ${int(token_data.get('liquidity', 0)):,}\n"
+        price = token_data.get('priceUsdt', 0)
+        volume = token_data.get('volume24h', 0)
+        market_cap = token_data.get('marketCap', 0)
+
+        token_info += f"Price: ${float(price):.6f}\n"
+        token_info += f"24h Volume: ${int(volume):,}\n"
+        token_info += f"Market Cap: ${int(market_cap):,}\n"
     else:
         token_info += "⚠️ No real data found. Might be new or not on Solana.\n"
 
