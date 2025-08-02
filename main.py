@@ -153,6 +153,8 @@ async def handle_ticker_analysis(update: Update, context: ContextTypes.DEFAULT_T
     try:
         headers = {"X-API-KEY": BIRDEYE_API_KEY}
         res = requests.get(birdeye_url, headers=headers)
+        if res.status_code != 200:
+            raise ValueError("Token not found.")
         token_data = res.json().get("data", {})
     except:
         token_data = {}
