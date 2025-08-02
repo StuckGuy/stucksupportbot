@@ -176,7 +176,7 @@ Analyze the token {ticker} and give:
 - Vibe check 🙀  
 Then give a final rating as one of: WINNER, MID, or STUCK.
 
-Bonus Tip: If this token had a Tinder bio, what would it say?
+Bonus Tip: Imagine this token had a Tinder bio. What would it say to win over a degen's heart?
 
 Use degen slang, stay brief but spicy. End with:  
 "Verdict: STUCK/WINNER/MID"
