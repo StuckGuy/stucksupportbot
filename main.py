@@ -154,35 +154,36 @@ async def handle_ticker_analysis(update: Update, context: ContextTypes.DEFAULT_T
 
     headers = {"X-API-KEY": BIRDEYE_API_KEY}
 
-    if ticker and not token_address:
+    # Priority: Use address if found, fallback to ticker search if needed
+    if not token_address and ticker:
         try:
             search_url = f"https://public-api.birdeye.so/public/search?q={ticker}"
             res = requests.get(search_url, headers=headers)
-            matches = res.json().get("data", [])
-            if matches:
-                token_address = matches[0].get("address")
+            token_address = res.json()["data"][0]["address"]
         except Exception as e:
             logger.error(f"Token search error for {ticker}: {e}")
 
     if not token_address:
         return await message.reply_text("❌ Couldn’t find a valid token address. Try again with just `$ticker` or address.")
 
-    logger.info(f"Using address: {token_address}")
+    logger.info(f"Using address: {token_address} (from {'ticker' if not token_address else 'address'})")
 
     try:
-        price_url = f"https://public-api.birdeye.so/public/defi/price?address={token_address}"
+        price_url = f"https://public-api.birdeye.so/public/token/{token_address}"
         res = requests.get(price_url, headers=headers)
         token_data = res.json().get("data", {})
     except Exception as e:
         logger.error(f"Birdeye fetch error: {e}")
         token_data = {}
 
-    token_info = f"\nReal-Time Stats for {f'${ticker} ' if ticker else ''}{token_address}:\n"
+    token_info = f"\nReal-Time Stats for {f'${ticker} ' if ticker else ''}({token_address}):\n"
     if token_data:
-        price = token_data.get('value', 0)
-        liquidity = token_data.get('liquidity', 0)
+        price = token_data.get('priceUsdt', 0)
+        volume = token_data.get('volume24h', 0)
+        market_cap = token_data.get('marketCap', 0)
         token_info += f"Price: ${float(price):.6f}\n"
-        token_info += f"Liquidity: ${int(liquidity):,}\n"
+        token_info += f"24h Volume: ${int(volume):,}\n"
+        token_info += f"Market Cap: ${int(market_cap):,}\n"
     else:
         token_info += "⚠️ No real data found. Might be new or not on Solana.\n"
 
